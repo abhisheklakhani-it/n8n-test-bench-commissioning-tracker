@@ -1,0 +1,512 @@
+{
+  "id": "cmTracker0000001",
+  "name": "Test Bench Commissioning Tracker",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Test Bench Commissioning - Step Entry",
+        "formDescription": "Enter or update the result of one commissioning step. Submitting the same bench + step again overwrites the previous entry.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Bench ID",
+              "placeholder": "e.g. PS-07",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Step",
+              "fieldType": "dropdown",
+              "requiredField": true,
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "S01 - Mechanical installation & wiring check"
+                  },
+                  {
+                    "option": "S02 - Power-up & safety circuit (E-Stop) test"
+                  },
+                  {
+                    "option": "S03 - Network / CAN communication check"
+                  },
+                  {
+                    "option": "S04 - Sensor & actuator calibration"
+                  },
+                  {
+                    "option": "S05 - Software flashing & HIL configuration"
+                  },
+                  {
+                    "option": "S06 - Reference test run"
+                  },
+                  {
+                    "option": "S07 - Documentation & release / handover"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Status",
+              "fieldType": "dropdown",
+              "requiredField": true,
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "PASS"
+                  },
+                  {
+                    "option": "FAIL"
+                  },
+                  {
+                    "option": "BLOCKED"
+                  },
+                  {
+                    "option": "IN_PROGRESS"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Technician",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Comment",
+              "fieldType": "textarea"
+            }
+          ]
+        },
+        "options": {
+          "path": "commissioning-form"
+        }
+      },
+      "id": "b56fff46-e121-416e-af06-20d1c6bc5629",
+      "name": "Technician Entry Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -220,
+        -220
+      ],
+      "webhookId": "eb0d149d-94ad-45e1-bf6e-2474feb3f2a7"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Convert form fields into the same shape the webhook delivers ({ body: {...} })\nreturn $input.all().map(item => {\n  const f = item.json;\n  return { json: { body: {\n    bench_id: f['Bench ID'],\n    step_id: String(f['Step'] || '').slice(0, 3),\n    status: f['Status'],\n    technician: f['Technician'],\n    comment: f['Comment'] || '',\n    source: 'form',\n  } } };\n});"
+      },
+      "id": "aea8b50a-35ef-4d0b-a230-b09594a4e257",
+      "name": "Map Form to Step Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/commissioning-step",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {}
+      },
+      "id": "b11a28d9-7288-4588-a2a4-eadf143421bb",
+      "name": "Send to Step Webhook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "commissioning-step",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "bf3559f6-547f-49c6-9e50-01743d79abae",
+      "name": "Step Result Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "01b1a960-c153-4644-a87e-63c5486234ec"
+    },
+    {
+      "parameters": {
+        "jsCode": "const STEPS = {\n  S01: 'Mechanical installation & wiring check',\n  S02: 'Power-up & safety circuit (E-Stop) test',\n  S03: 'Network / CAN communication check',\n  S04: 'Sensor & actuator calibration',\n  S05: 'Software flashing & HIL configuration',\n  S06: 'Reference test run',\n  S07: 'Documentation & release / handover',\n};\nconst ALLOWED = ['PASS', 'FAIL', 'BLOCKED', 'IN_PROGRESS'];\n\nreturn $input.all().map(item => {\n  const b = item.json.body || {};\n  const errors = [];\n  if (!b.bench_id) errors.push('bench_id is required');\n  if (!STEPS[b.step_id]) errors.push(`step_id must be one of ${Object.keys(STEPS).join(', ')}`);\n  const status = String(b.status || '').toUpperCase();\n  if (!ALLOWED.includes(status)) errors.push(`status must be one of ${ALLOWED.join(', ')}`);\n  if (!b.technician) errors.push('technician is required');\n\n  return {\n    json: {\n      valid: errors.length === 0,\n      errors,\n      record: {\n        bench_id: String(b.bench_id || '').trim().toUpperCase(),\n        step_id: b.step_id,\n        step_name: STEPS[b.step_id] || null,\n        status,\n        technician: b.technician || null,\n        comment: b.comment || '',\n        measurements: b.measurements || {},\n        timestamp: new Date().toISOString(),\n        total_steps: Object.keys(STEPS).length,\n      },\n    },\n  };\n});"
+      },
+      "id": "dd0568c6-8830-48e0-afe0-09dc36837d5e",
+      "name": "Validate & Normalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.valid }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "d202b0fa-cd1e-4632-899a-759d1129d936",
+      "name": "Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Simple persistence for the demo: workflow static data (only saved for\n// production executions, i.e. when the workflow is active).\n// In a real setup replace this with SharePoint / Microsoft Lists / Postgres.\nconst db = $getWorkflowStaticData('global');\ndb.benches = db.benches || {};\ndb.log = db.log || [];\n\nreturn $input.all().map(item => {\n  const r = item.json.record;\n  const bench = db.benches[r.bench_id] = db.benches[r.bench_id] || { steps: {}, created_at: r.timestamp };\n  bench.steps[r.step_id] = {\n    status: r.status, step_name: r.step_name, technician: r.technician,\n    comment: r.comment, timestamp: r.timestamp,\n  };\n  bench.updated_at = r.timestamp;\n\n  db.log.push(r);\n  if (db.log.length > 500) db.log.shift();\n\n  const passed = Object.values(bench.steps).filter(s => s.status === 'PASS').length;\n  const progress_pct = Math.round((passed / r.total_steps) * 100);\n  return { json: { ...r, progress_pct, release_ready: passed === r.total_steps } };\n});"
+      },
+      "id": "7fe00aee-a853-4130-a18f-ef2a703e9e31",
+      "name": "Store Step Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, bench_id: $json.bench_id, step_id: $json.step_id, status: $json.status, progress_pct: $json.progress_pct, release_ready: $json.release_ready }) }}",
+        "options": {}
+      },
+      "id": "0b466599-78ec-4d54-98ae-6da6d41588fc",
+      "name": "Respond 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        880,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, errors: $json.errors }) }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "c8214bfb-8081-40cb-8dbf-d8b75f1f2a6d",
+      "name": "Respond 400",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        660,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ ['FAIL','BLOCKED'].includes($json.status) }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "b68d0cfd-e62b-45fb-bccd-8ecbf2522f5f",
+      "name": "FAIL or BLOCKED?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => {\n  const r = item.json;\n  const text =\n    `⚠️ Commissioning issue on ${r.bench_id}\\n` +\n    `Step ${r.step_id} – ${r.step_name}: ${r.status}\\n` +\n    `Technician: ${r.technician}\\n` +\n    (r.comment ? `Comment: ${r.comment}\\n` : '') +\n    `Bench progress: ${r.progress_pct}%`;\n  return { json: { channel: 'commissioning-alerts', text, ...r } };\n});"
+      },
+      "id": "bf608c3b-a0ba-48ec-9512-2465a1fbfc6f",
+      "name": "Build Alert Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        -20
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "950006de-a296-469b-93f0-0b451595ea71",
+      "name": "Notify Team (swap for MS Teams / Email)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "commissioning-status",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "baef7132-c532-447d-b760-74f600950f4a",
+      "name": "Status Dashboard Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        360
+      ],
+      "webhookId": "ac665a15-7aa1-4f50-805e-ae76851bf06a"
+    },
+    {
+      "parameters": {
+        "jsCode": "const STEPS = {\n  S01: 'Mechanical installation & wiring check',\n  S02: 'Power-up & safety circuit (E-Stop) test',\n  S03: 'Network / CAN communication check',\n  S04: 'Sensor & actuator calibration',\n  S05: 'Software flashing & HIL configuration',\n  S06: 'Reference test run',\n  S07: 'Documentation & release / handover',\n};\nconst db = $getWorkflowStaticData('global');\nconst benches = db.benches || {};\nconst ids = Object.keys(STEPS);\nconst color = { PASS: '#2e7d32', FAIL: '#c62828', BLOCKED: '#ef6c00', IN_PROGRESS: '#1565c0' };\n\nconst rows = Object.entries(benches).sort().map(([id, b]) => {\n  const passed = ids.filter(s => b.steps[s]?.status === 'PASS').length;\n  const pct = Math.round((passed / ids.length) * 100);\n  const cells = ids.map(s => {\n    const st = b.steps[s];\n    if (!st) return '<td style=\"color:#999\">—</td>';\n    return `<td title=\"${st.technician} @ ${st.timestamp}\" style=\"color:#fff;background:${color[st.status]}\">${st.status}</td>`;\n  }).join('');\n  const release = pct === 100 ? '✅ Ready' : 'Open';\n  return `<tr><th>${id}</th>${cells}<td>${pct}%</td><td>${release}</td><td>${b.updated_at}</td></tr>`;\n}).join('');\n\nconst head = ids.map(s => `<th title=\"${STEPS[s]}\">${s}</th>`).join('');\nconst html = `<!doctype html><html><head><meta charset=\"utf-8\"><title>Commissioning Status</title>\n<style>body{font-family:system-ui;margin:24px}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:6px 10px;text-align:center;font-size:13px}</style></head>\n<body><h2>Test Bench Commissioning – Live Status</h2>\n<table><tr><th>Bench</th>${head}<th>Progress</th><th>Release</th><th>Last update</th></tr>\n${rows || '<tr><td colspan=\"11\">No data yet</td></tr>'}</table>\n<p style=\"color:#666;font-size:12px\">${ids.map(s => s + ' = ' + STEPS[s]).join(' · ')}</p></body></html>`;\n\nreturn [{ json: { html } }];"
+      },
+      "id": "1be1ca74-cd5a-46e6-b946-7fd1fc0b9c66",
+      "name": "Build HTML Dashboard",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "86361483-d128-417e-80f1-492feb17e3d2",
+      "name": "Return Dashboard",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        440,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "f82e68bf-4aa4-4ce3-8186-d95aa1d845a5",
+      "name": "Every Weekday 08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const STEPS = {\n  S01: 'Mechanical installation & wiring check',\n  S02: 'Power-up & safety circuit (E-Stop) test',\n  S03: 'Network / CAN communication check',\n  S04: 'Sensor & actuator calibration',\n  S05: 'Software flashing & HIL configuration',\n  S06: 'Reference test run',\n  S07: 'Documentation & release / handover',\n};\nconst db = $getWorkflowStaticData('global');\nconst benches = db.benches || {};\nconst total = Object.keys(STEPS).length;\nconst lines = [];\nlet ready = 0;\n\nfor (const [id, b] of Object.entries(benches).sort()) {\n  const steps = Object.values(b.steps);\n  const passed = steps.filter(s => s.status === 'PASS').length;\n  const issues = Object.entries(b.steps)\n    .filter(([, s]) => s.status === 'FAIL' || s.status === 'BLOCKED')\n    .map(([k, s]) => `${k} ${s.status}`);\n  if (passed === total) ready++;\n  lines.push(`${id}: ${passed}/${total} steps passed` + (issues.length ? ` | open issues: ${issues.join(', ')}` : ''));\n}\n\nconst subject = `Daily commissioning status – ${new Date().toISOString().slice(0, 10)}`;\nconst body = [`Benches tracked: ${Object.keys(benches).length}`, `Release-ready: ${ready}`, '', ...lines].join('\\n');\nreturn [{ json: { subject, body } }];"
+      },
+      "id": "b1c12469-5d5c-4daa-9896-ff17d47a0df8",
+      "name": "Build Daily Status Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        580
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "ab7a6acd-adda-435f-8c35-5f573c93f769",
+      "name": "Send Report (swap for Outlook / Teams)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        440,
+        580
+      ]
+    }
+  ],
+  "connections": {
+    "Technician Entry Form": {
+      "main": [
+        [
+          {
+            "node": "Map Form to Step Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Form to Step Result": {
+      "main": [
+        [
+          {
+            "node": "Send to Step Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Step Result Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate & Normalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate & Normalize": {
+      "main": [
+        [
+          {
+            "node": "Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid?": {
+      "main": [
+        [
+          {
+            "node": "Store Step Result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 400",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Step Result": {
+      "main": [
+        [
+          {
+            "node": "Respond 200",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "FAIL or BLOCKED?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FAIL or BLOCKED?": {
+      "main": [
+        [
+          {
+            "node": "Build Alert Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Build Alert Message": {
+      "main": [
+        [
+          {
+            "node": "Notify Team (swap for MS Teams / Email)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status Dashboard Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build HTML Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build HTML Dashboard": {
+      "main": [
+        [
+          {
+            "node": "Return Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every Weekday 08:00": {
+      "main": [
+        [
+          {
+            "node": "Build Daily Status Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Daily Status Report": {
+      "main": [
+        [
+          {
+            "node": "Send Report (swap for Outlook / Teams)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "active": false
+}
