@@ -1,6 +1,6 @@
 # Test Bench Commissioning Tracker (n8n)
 
-A low-code workflow automation that digitalizes the **commissioning process of test benches**: step results are captured through a web form or an HTTP API, validated, stored, escalated on failure and summarized in a live status dashboard and a daily status / release report.
+A low-code workflow automation that digitalizes the **commissioning process of test benches**: step results are captured through a web form or an HTTP API, validated and stored. The workflow knows **which step depends on which**, so it hands work over to the **next responsible role only** and escalates real blockers immediately. Everything is summarised in a live status dashboard and a daily status / release report.
 
 Built with **[n8n](https://n8n.io)** (self-hosted workflow automation), JavaScript Code nodes and plain HTML.
 
@@ -34,6 +34,8 @@ Commissioning a test bench is a sequence of steps such as wiring checks, safety 
 | **Media breaks**: results are written on paper or in Excel, then re-typed or mailed | Duplicate work, transcription errors, no single source of truth |
 | **No transparency**: project leads must ask "what is the status of bench PS-07?" | Status meetings and manual follow-ups |
 | **Late failure detection**: nobody is actively notified when a step fails or is blocked | Waiting time, delayed handover |
+| **Invisible dependencies**: the next person does not know that their step can start | Idle time between steps (waiting waste) |
+| **Notification overload** if everyone is informed about everything | Important messages get ignored |
 | **Manual reporting**: release / handover overviews are assembled by hand | Time-consuming and quickly outdated |
 
 **Goal:** one digital workflow that captures every step result once, at the source, and automatically turns it into transparency: alerts, a live dashboard and status / release reports.
@@ -45,7 +47,8 @@ Commissioning a test bench is a sequence of steps such as wiring checks, safety 
 | Capture step results without media breaks | **Web form** for technicians + **REST webhook** for scripts / test bench software |
 | Data quality | Central validation (bench ID, step ID, status, technician); invalid requests get `HTTP 400` with a list of errors |
 | Track execution and documentation | Every result is stored with technician, timestamp, comment and optional measurements, plus an audit log |
-| Fast reaction to problems | `FAIL` / `BLOCKED` results trigger an alert branch (ready for Microsoft Teams / e-mail) |
+| Fast reaction to problems | `FAIL` / `BLOCKED` results trigger a **P1** alert to the step owner and project lead, listing every downstream step that is now blocked |
+| Smooth handovers without notification flood | Dependency model (incl. parallel steps); when a step passes, only the role of the **newly unblocked** step gets one **P2** message. Everything else (**P3**) is not pushed, it appears in the dashboard and daily digest |
 | Transparency | Live **HTML dashboard**: bench × step matrix, colour coded, progress in %, release flag |
 | Automated status & release overview | **Scheduled report** every weekday at 08:00; a bench is *release-ready* when all steps are `PASS` |
 
@@ -55,7 +58,9 @@ Commissioning a test bench is a sequence of steps such as wiring checks, safety 
 - Enter **and update** results: submitting the same bench + step again overwrites the previous entry
 - Input normalisation (e.g. `ps-15` becomes `PS-15`, `in_progress` becomes `IN_PROGRESS`)
 - Progress calculation and automatic **release-ready** flag per bench
-- Escalation branch for failed or blocked steps
+- **Dependency-aware, prioritised notifications** (P1 alert / P2 targeted handover / P3 digest only)
+- **Parallel steps** supported: S04 and S05 start at the same time after S03; S06 waits for both
+- "Ready to start → role" column so every role sees what it can work on next
 - Daily status report (benches tracked, release-ready count, open issues per bench)
 - Runs fully **self-hosted** (Docker or Node.js), so data stays inside the lab / company network
 - Workflow stored as JSON, so it can be version-controlled and reviewed like code
@@ -76,8 +81,10 @@ flowchart LR
     Q -- no --> R400["Respond 400<br/>{errors}"]
     Q -- yes --> ST["Store Step Result<br/>(Code + workflow data)"]
     ST --> R200["Respond 200<br/>{progress_pct, release_ready}"]
-    ST --> FB{"FAIL or BLOCKED?"}
-    FB -- yes --> AL["Build Alert Message"] --> N["Notify Team<br/>(Teams / E-mail)"]
+    ST --> PN["Plan Notifications<br/>(dependencies → who + priority)"]
+    PN --> PQ{"P1 urgent?"}
+    PQ -- yes --> UA["Urgent alert<br/>step owner + project lead"]
+    PQ -- no --> HO["Handover message<br/>next role only"]
 
     subgraph Output
         D[/"Status Dashboard<br/>GET /webhook/commissioning-status"/] --> DH["Build HTML Dashboard"] --> DR["Return HTML"]
@@ -93,7 +100,7 @@ flowchart LR
 
 | Flow | Trigger | Purpose |
 |---|---|---|
-| A: Step result | `POST /webhook/commissioning-step` | Validate → store → respond → alert on `FAIL` / `BLOCKED` |
+| A: Step result | `POST /webhook/commissioning-step` | Validate → store → respond → plan notifications (P1 alert / P2 handover / P3 none) |
 | B: Dashboard | `GET /webhook/commissioning-status` | Render the live status matrix as HTML |
 | C: Daily report | Cron `0 8 * * 1-5` | Summarise progress, release-ready benches and open issues |
 | D: Entry form | `GET/POST /form/commissioning-form` | Human-friendly input; forwards to Flow A via HTTP Request, so validation and storage logic exist only once |
@@ -111,6 +118,27 @@ flowchart LR
 | S07 | Documentation & release / handover |
 
 **Status values:** `PASS` · `FAIL` · `BLOCKED` · `IN_PROGRESS`
+
+## Dependencies and prioritised notifications
+
+In a large organisation, "notify the next person when my task is done" quickly turns into hundreds of messages that nobody reads. The workflow therefore decides **who** needs to know and **how urgent** it is.
+
+```mermaid
+flowchart LR
+    S01["S01 Mechanik"] --> S02["S02 Elektrik"] --> S03["S03 Elektrik"]
+    S03 --> S04["S04 Messtechnik"]
+    S03 --> S05["S05 Software"]
+    S04 --> S06["S06 Prüfingenieur"]
+    S05 --> S06 --> S07["S07 Projektleitung"]
+```
+
+| Priority | When | Who is notified | Channel |
+|---|---|---|---|
+| **P1** urgent | A step is `FAIL` or `BLOCKED` | Owner role of the step + project lead, with the list of blocked downstream steps | Immediate push (e.g. Teams) |
+| **P2** handover | A step `PASS`es **and** a following step becomes startable (all its dependencies passed) | **Only** the role of the newly unblocked step | One targeted message |
+| **P3** info | `IN_PROGRESS`, or a `PASS` that does not unblock anything yet | Nobody | Dashboard + daily digest only |
+
+Example: when S04 passes but S05 is still running, **no message** is sent. When S05 passes too, only the *Prüfingenieur* receives "S06 can start now". Notifications are addressed to **roles**, not to individuals, so the mapping can follow team changes without touching the workflow.
 
 ```jsonc
 // stored per bench
@@ -201,7 +229,7 @@ Returns the HTML dashboard.
 ```
 .
 ├── workflows/
-│   └── commissioning_tracker_workflow.json   # n8n workflow (18 nodes, 4 triggers)
+│   └── commissioning_tracker_workflow.json   # n8n workflow (19 nodes, 4 triggers)
 ├── scripts/
 │   └── send_test_data.sh                     # sample data + invalid request
 ├── docs/images/                              # demo GIF and screenshots
@@ -214,6 +242,7 @@ Returns the HTML dashboard.
 - **One validation path.** The form does not duplicate the logic; it forwards to the same webhook as machines do. n8n also does not allow *Respond to Webhook* nodes in form-started executions, so this keeps both entry points clean.
 - **Validate at the entry point.** Bad data is rejected with a clear message instead of polluting the dashboard.
 - **Code nodes only where they add value.** Validation, aggregation and HTML rendering are in small, named JavaScript nodes; routing uses standard IF nodes so the flow stays readable for non-developers.
+- **Notify by dependency and priority, not by default.** Only blockers are pushed immediately; handovers go to one role; everything else is pulled from the dashboard. This keeps the signal-to-noise ratio high as the number of benches and people grows.
 - **Placeholders for notifications.** Alert and report nodes are No-Op nodes, so the workflow runs without credentials; swap them for *Microsoft Teams*, *Outlook* or *Slack* nodes.
 - **Self-hosted.** Can run inside an isolated lab network next to the test benches; only aggregated status needs to leave it.
 
@@ -222,7 +251,7 @@ Returns the HTML dashboard.
 **Current limitations**
 - Storage uses n8n workflow static data (demo-grade: persisted only for active / production executions, no concurrent-write control).
 - Webhooks have no authentication yet.
-- The step list is defined in the Code nodes.
+- The step list, dependencies and role mapping are defined in the Code nodes (one shared block).
 
 **Roadmap**
 - [ ] Persist results in **SharePoint / Microsoft Lists or PostgreSQL** (and feed Power BI)

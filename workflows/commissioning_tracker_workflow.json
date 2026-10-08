@@ -78,7 +78,7 @@
           "path": "commissioning-form"
         }
       },
-      "id": "b56fff46-e121-416e-af06-20d1c6bc5629",
+      "id": "021181fe-f8a0-47b3-b721-119c5494afff",
       "name": "Technician Entry Form",
       "type": "n8n-nodes-base.formTrigger",
       "typeVersion": 2.2,
@@ -92,7 +92,7 @@
       "parameters": {
         "jsCode": "// Convert form fields into the same shape the webhook delivers ({ body: {...} })\nreturn $input.all().map(item => {\n  const f = item.json;\n  return { json: { body: {\n    bench_id: f['Bench ID'],\n    step_id: String(f['Step'] || '').slice(0, 3),\n    status: f['Status'],\n    technician: f['Technician'],\n    comment: f['Comment'] || '',\n    source: 'form',\n  } } };\n});"
       },
-      "id": "aea8b50a-35ef-4d0b-a230-b09594a4e257",
+      "id": "eb50c68b-009c-4b67-a707-2a4832514890",
       "name": "Map Form to Step Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -110,7 +110,7 @@
         "jsonBody": "={{ JSON.stringify($json.body) }}",
         "options": {}
       },
-      "id": "b11a28d9-7288-4588-a2a4-eadf143421bb",
+      "id": "b4cb7ecc-27c3-4190-934c-c919f609fa9a",
       "name": "Send to Step Webhook",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -126,7 +126,7 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "bf3559f6-547f-49c6-9e50-01743d79abae",
+      "id": "b9fe5dda-2d0b-48b2-ab0a-1d7ee69de965",
       "name": "Step Result Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -134,13 +134,13 @@
         0,
         0
       ],
-      "webhookId": "01b1a960-c153-4644-a87e-63c5486234ec"
+      "webhookId": "b823d641-9ac1-4db8-bf8c-38974e628c6a"
     },
     {
       "parameters": {
         "jsCode": "const STEPS = {\n  S01: 'Mechanical installation & wiring check',\n  S02: 'Power-up & safety circuit (E-Stop) test',\n  S03: 'Network / CAN communication check',\n  S04: 'Sensor & actuator calibration',\n  S05: 'Software flashing & HIL configuration',\n  S06: 'Reference test run',\n  S07: 'Documentation & release / handover',\n};\nconst ALLOWED = ['PASS', 'FAIL', 'BLOCKED', 'IN_PROGRESS'];\n\nreturn $input.all().map(item => {\n  const b = item.json.body || {};\n  const errors = [];\n  if (!b.bench_id) errors.push('bench_id is required');\n  if (!STEPS[b.step_id]) errors.push(`step_id must be one of ${Object.keys(STEPS).join(', ')}`);\n  const status = String(b.status || '').toUpperCase();\n  if (!ALLOWED.includes(status)) errors.push(`status must be one of ${ALLOWED.join(', ')}`);\n  if (!b.technician) errors.push('technician is required');\n\n  return {\n    json: {\n      valid: errors.length === 0,\n      errors,\n      record: {\n        bench_id: String(b.bench_id || '').trim().toUpperCase(),\n        step_id: b.step_id,\n        step_name: STEPS[b.step_id] || null,\n        status,\n        technician: b.technician || null,\n        comment: b.comment || '',\n        measurements: b.measurements || {},\n        timestamp: new Date().toISOString(),\n        total_steps: Object.keys(STEPS).length,\n      },\n    },\n  };\n});"
       },
-      "id": "dd0568c6-8830-48e0-afe0-09dc36837d5e",
+      "id": "2a37132b-7772-4060-b2d6-ac6dc4dda15a",
       "name": "Validate & Normalize",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -160,7 +160,7 @@
           ]
         }
       },
-      "id": "d202b0fa-cd1e-4632-899a-759d1129d936",
+      "id": "290c2f96-fa80-4bee-92a5-99bb40e68a22",
       "name": "Valid?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
@@ -173,7 +173,7 @@
       "parameters": {
         "jsCode": "// Simple persistence for the demo: workflow static data (only saved for\n// production executions, i.e. when the workflow is active).\n// In a real setup replace this with SharePoint / Microsoft Lists / Postgres.\nconst db = $getWorkflowStaticData('global');\ndb.benches = db.benches || {};\ndb.log = db.log || [];\n\nreturn $input.all().map(item => {\n  const r = item.json.record;\n  const bench = db.benches[r.bench_id] = db.benches[r.bench_id] || { steps: {}, created_at: r.timestamp };\n  bench.steps[r.step_id] = {\n    status: r.status, step_name: r.step_name, technician: r.technician,\n    comment: r.comment, timestamp: r.timestamp,\n  };\n  bench.updated_at = r.timestamp;\n\n  db.log.push(r);\n  if (db.log.length > 500) db.log.shift();\n\n  const passed = Object.values(bench.steps).filter(s => s.status === 'PASS').length;\n  const progress_pct = Math.round((passed / r.total_steps) * 100);\n  return { json: { ...r, progress_pct, release_ready: passed === r.total_steps } };\n});"
       },
-      "id": "7fe00aee-a853-4130-a18f-ef2a703e9e31",
+      "id": "856ad3d0-74f1-4b53-9cc2-85960d295138",
       "name": "Store Step Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -188,7 +188,7 @@
         "responseBody": "={{ JSON.stringify({ ok: true, bench_id: $json.bench_id, step_id: $json.step_id, status: $json.status, progress_pct: $json.progress_pct, release_ready: $json.release_ready }) }}",
         "options": {}
       },
-      "id": "0b466599-78ec-4d54-98ae-6da6d41588fc",
+      "id": "94418a8d-9569-4023-8894-2e8d93ad9fb5",
       "name": "Respond 200",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
@@ -205,7 +205,7 @@
           "responseCode": 400
         }
       },
-      "id": "c8214bfb-8081-40cb-8dbf-d8b75f1f2a6d",
+      "id": "88b53aa6-b928-4f90-b2b6-99f3c2f17ef7",
       "name": "Respond 400",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
@@ -216,19 +216,12 @@
     },
     {
       "parameters": {
-        "conditions": {
-          "boolean": [
-            {
-              "value1": "={{ ['FAIL','BLOCKED'].includes($json.status) }}",
-              "value2": true
-            }
-          ]
-        }
+        "jsCode": "const STEPS = {\n  S01: 'Mechanical installation & wiring check',\n  S02: 'Power-up & safety circuit (E-Stop) test',\n  S03: 'Network / CAN communication check',\n  S04: 'Sensor & actuator calibration',\n  S05: 'Software flashing & HIL configuration',\n  S06: 'Reference test run',\n  S07: 'Documentation & release / handover',\n};\n// Process model: which step depends on which (S04 and S05 can run in parallel)\nconst DEPS = { S01: [], S02: ['S01'], S03: ['S02'], S04: ['S03'], S05: ['S03'], S06: ['S04', 'S05'], S07: ['S06'] };\n// Who is responsible for each step (role, not person -> no notification flood)\nconst OWNER = { S01: 'Mechanik', S02: 'Elektrik', S03: 'Elektrik', S04: 'Messtechnik', S05: 'Software', S06: 'Prüfingenieur', S07: 'Projektleitung' };\nconst done = (b, s) => b.steps[s]?.status === 'PASS';\nconst readyToStart = b => Object.keys(STEPS).filter(s => !b.steps[s] && DEPS[s].every(d => done(b, d)));\nconst downstream = s => { const out = new Set(); const walk = x => Object.keys(DEPS).filter(k => DEPS[k].includes(x)).forEach(k => { if (!out.has(k)) { out.add(k); walk(k); } }); walk(s); return [...out].sort(); };\n\n// Decide WHO gets notified and HOW URGENT, instead of notifying everyone about everything.\n//  P1 = immediate alert (step FAILED or BLOCKED -> blocks downstream work)\n//  P2 = one targeted handover message to the role whose step is now unblocked\n//  P3 = no push at all, only in the daily digest (IN_PROGRESS, PASS without handover)\nconst db = $getWorkflowStaticData('global');\ndb.notifications = db.notifications || [];\nconst out = [];\n\nfor (const item of $input.all()) {\n  const r = item.json;\n  const bench = db.benches[r.bench_id];\n  const notes = [];\n\n  if (r.status === 'FAIL' || r.status === 'BLOCKED') {\n    const blocked = downstream(r.step_id);\n    notes.push({\n      priority: 'P1', to: [OWNER[r.step_id], 'Projektleitung'],\n      text: `${r.bench_id}: ${r.step_id} ${r.step_name} is ${r.status}` + (r.comment ? ` (${r.comment})` : '') +\n            `. Blocks ${blocked.length} following step(s): ${blocked.join(', ') || 'none'}.`,\n    });\n  } else if (r.status === 'PASS') {\n    const unblocked = readyToStart(bench).filter(s => DEPS[s].includes(r.step_id));\n    for (const s of unblocked) {\n      notes.push({ priority: 'P2', to: [OWNER[s]], text: `${r.bench_id}: ${s} ${STEPS[s]} can start now (${r.step_id} passed).` });\n    }\n  }\n\n  for (const n of notes) {\n    const rec = { ...n, bench_id: r.bench_id, step_id: r.step_id, at: r.timestamp };\n    db.notifications.push(rec);\n    if (db.notifications.length > 200) db.notifications.shift();\n    out.push({ json: rec });\n  }\n}\nreturn out;   // P3 events produce no item -> no notification at all"
       },
-      "id": "b68d0cfd-e62b-45fb-bccd-8ecbf2522f5f",
-      "name": "FAIL or BLOCKED?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
+      "id": "ead56440-49bd-4032-bd5d-83a1e484a55d",
+      "name": "Plan Notifications (who + priority)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         880,
         0
@@ -236,26 +229,44 @@
     },
     {
       "parameters": {
-        "jsCode": "return $input.all().map(item => {\n  const r = item.json;\n  const text =\n    `⚠️ Commissioning issue on ${r.bench_id}\\n` +\n    `Step ${r.step_id} – ${r.step_name}: ${r.status}\\n` +\n    `Technician: ${r.technician}\\n` +\n    (r.comment ? `Comment: ${r.comment}\\n` : '') +\n    `Bench progress: ${r.progress_pct}%`;\n  return { json: { channel: 'commissioning-alerts', text, ...r } };\n});"
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.priority }}",
+              "value2": "P1"
+            }
+          ]
+        }
       },
-      "id": "bf608c3b-a0ba-48ec-9512-2465a1fbfc6f",
-      "name": "Build Alert Message",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "id": "e45335bf-b574-4a88-8997-69354926597c",
+      "name": "P1 urgent?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
       "position": [
         1100,
-        -20
+        0
       ]
     },
     {
       "parameters": {},
-      "id": "950006de-a296-469b-93f0-0b451595ea71",
-      "name": "Notify Team (swap for MS Teams / Email)",
+      "id": "a2a532cb-66b2-4bd0-ac57-f6df99b5b668",
+      "name": "Send Urgent Alert (swap for MS Teams)",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
         1320,
-        -20
+        -80
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "224f1f82-2ffb-4bbd-bf2a-147ff9b53a1f",
+      "name": "Send Handover to Next Role (swap for Teams chat)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        80
       ]
     },
     {
@@ -265,7 +276,7 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "baef7132-c532-447d-b760-74f600950f4a",
+      "id": "089e00cc-5e59-4334-80ac-bc75dd04c62a",
       "name": "Status Dashboard Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -273,13 +284,13 @@
         0,
         360
       ],
-      "webhookId": "ac665a15-7aa1-4f50-805e-ae76851bf06a"
+      "webhookId": "a8f41f82-a58e-40e6-941e-a7e7858d20e3"
     },
     {
       "parameters": {
-        "jsCode": "const STEPS = {\n  S01: 'Mechanical installation & wiring check',\n  S02: 'Power-up & safety circuit (E-Stop) test',\n  S03: 'Network / CAN communication check',\n  S04: 'Sensor & actuator calibration',\n  S05: 'Software flashing & HIL configuration',\n  S06: 'Reference test run',\n  S07: 'Documentation & release / handover',\n};\nconst db = $getWorkflowStaticData('global');\nconst benches = db.benches || {};\nconst ids = Object.keys(STEPS);\nconst color = { PASS: '#2e7d32', FAIL: '#c62828', BLOCKED: '#ef6c00', IN_PROGRESS: '#1565c0' };\n\nconst rows = Object.entries(benches).sort().map(([id, b]) => {\n  const passed = ids.filter(s => b.steps[s]?.status === 'PASS').length;\n  const pct = Math.round((passed / ids.length) * 100);\n  const cells = ids.map(s => {\n    const st = b.steps[s];\n    if (!st) return '<td style=\"color:#999\">—</td>';\n    return `<td title=\"${st.technician} @ ${st.timestamp}\" style=\"color:#fff;background:${color[st.status]}\">${st.status}</td>`;\n  }).join('');\n  const release = pct === 100 ? '✅ Ready' : 'Open';\n  return `<tr><th>${id}</th>${cells}<td>${pct}%</td><td>${release}</td><td>${b.updated_at}</td></tr>`;\n}).join('');\n\nconst head = ids.map(s => `<th title=\"${STEPS[s]}\">${s}</th>`).join('');\nconst html = `<!doctype html><html><head><meta charset=\"utf-8\"><title>Commissioning Status</title>\n<style>body{font-family:system-ui;margin:24px}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:6px 10px;text-align:center;font-size:13px}</style></head>\n<body><h2>Test Bench Commissioning – Live Status</h2>\n<table><tr><th>Bench</th>${head}<th>Progress</th><th>Release</th><th>Last update</th></tr>\n${rows || '<tr><td colspan=\"11\">No data yet</td></tr>'}</table>\n<p style=\"color:#666;font-size:12px\">${ids.map(s => s + ' = ' + STEPS[s]).join(' · ')}</p></body></html>`;\n\nreturn [{ json: { html } }];"
+        "jsCode": "const STEPS = {\n  S01: 'Mechanical installation & wiring check',\n  S02: 'Power-up & safety circuit (E-Stop) test',\n  S03: 'Network / CAN communication check',\n  S04: 'Sensor & actuator calibration',\n  S05: 'Software flashing & HIL configuration',\n  S06: 'Reference test run',\n  S07: 'Documentation & release / handover',\n};\n// Process model: which step depends on which (S04 and S05 can run in parallel)\nconst DEPS = { S01: [], S02: ['S01'], S03: ['S02'], S04: ['S03'], S05: ['S03'], S06: ['S04', 'S05'], S07: ['S06'] };\n// Who is responsible for each step (role, not person -> no notification flood)\nconst OWNER = { S01: 'Mechanik', S02: 'Elektrik', S03: 'Elektrik', S04: 'Messtechnik', S05: 'Software', S06: 'Prüfingenieur', S07: 'Projektleitung' };\nconst done = (b, s) => b.steps[s]?.status === 'PASS';\nconst readyToStart = b => Object.keys(STEPS).filter(s => !b.steps[s] && DEPS[s].every(d => done(b, d)));\nconst downstream = s => { const out = new Set(); const walk = x => Object.keys(DEPS).filter(k => DEPS[k].includes(x)).forEach(k => { if (!out.has(k)) { out.add(k); walk(k); } }); walk(s); return [...out].sort(); };\n\nconst db = $getWorkflowStaticData('global');\nconst benches = db.benches || {};\nconst ids = Object.keys(STEPS);\nconst color = { PASS: '#2e7d32', FAIL: '#c62828', BLOCKED: '#ef6c00', IN_PROGRESS: '#1565c0' };\n\nconst rows = Object.entries(benches).sort().map(([id, b]) => {\n  const passed = ids.filter(s => b.steps[s]?.status === 'PASS').length;\n  const pct = Math.round((passed / ids.length) * 100);\n  const cells = ids.map(s => {\n    const st = b.steps[s];\n    if (!st) return '<td style=\"color:#999\">—</td>';\n    return `<td title=\"${st.technician} @ ${st.timestamp}\" style=\"color:#fff;background:${color[st.status]}\">${st.status}</td>`;\n  }).join('');\n  const release = pct === 100 ? '✅ Ready' : 'Open';\n  const next = readyToStart(b).map(s => `${s} → ${OWNER[s]}`).join('<br>') || '—';\n  return `<tr><th>${id}</th>${cells}<td>${pct}%</td><td>${release}</td><td style=\"text-align:left\">${next}</td><td>${b.updated_at.slice(0, 16).replace('T', ' ')}</td></tr>`;\n}).join('');\n\nconst head = ids.map(s => `<th title=\"${STEPS[s]}\">${s}</th>`).join('');\nconst html = `<!doctype html><html><head><meta charset=\"utf-8\"><title>Commissioning Status</title>\n<style>body{font-family:system-ui;margin:24px}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:6px 10px;text-align:center;font-size:13px}</style></head>\n<body><h2>Test Bench Commissioning – Live Status</h2>\n<table><tr><th>Bench</th>${head}<th>Progress</th><th>Release</th><th>Ready to start → role</th><th>Last update (UTC)</th></tr>\n${rows || '<tr><td colspan=\"12\">No data yet</td></tr>'}</table>\n<p style=\"color:#666;font-size:12px\">${ids.map(s => s + ' = ' + STEPS[s] + ' (' + OWNER[s] + ')').join(' · ')}<br>Dependencies: S01 → S02 → S03 → (S04 ∥ S05) → S06 → S07</p>\n<h3>Notifications sent (newest first)</h3>\n<p style=\"color:#666;font-size:12px\">P1 = immediate alert · P2 = targeted handover to the next role only · P3 = no push, daily digest</p>\n<table><tr><th>Prio</th><th>To</th><th>Message</th><th>Time (UTC)</th></tr>\n${(db.notifications || []).slice(-12).reverse().map(n => `<tr><td style=\"color:#fff;background:${n.priority === 'P1' ? '#c62828' : '#1565c0'}\">${n.priority}</td><td>${n.to.join(', ')}</td><td style=\"text-align:left\">${n.text}</td><td>${n.at.slice(11, 16)}</td></tr>`).join('') || '<tr><td colspan=\"4\">No notifications yet</td></tr>'}\n</table></body></html>`;\n\nreturn [{ json: { html } }];"
       },
-      "id": "1be1ca74-cd5a-46e6-b946-7fd1fc0b9c66",
+      "id": "dd9a3a96-1f17-4945-8380-f01271c25067",
       "name": "Build HTML Dashboard",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -303,7 +314,7 @@
           }
         }
       },
-      "id": "86361483-d128-417e-80f1-492feb17e3d2",
+      "id": "6eb721c8-8517-4e05-a8cf-75a300bea3e0",
       "name": "Return Dashboard",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
@@ -323,7 +334,7 @@
           ]
         }
       },
-      "id": "f82e68bf-4aa4-4ce3-8186-d95aa1d845a5",
+      "id": "64986256-1af7-449c-a0c0-8092bc66a3ac",
       "name": "Every Weekday 08:00",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -334,9 +345,9 @@
     },
     {
       "parameters": {
-        "jsCode": "const STEPS = {\n  S01: 'Mechanical installation & wiring check',\n  S02: 'Power-up & safety circuit (E-Stop) test',\n  S03: 'Network / CAN communication check',\n  S04: 'Sensor & actuator calibration',\n  S05: 'Software flashing & HIL configuration',\n  S06: 'Reference test run',\n  S07: 'Documentation & release / handover',\n};\nconst db = $getWorkflowStaticData('global');\nconst benches = db.benches || {};\nconst total = Object.keys(STEPS).length;\nconst lines = [];\nlet ready = 0;\n\nfor (const [id, b] of Object.entries(benches).sort()) {\n  const steps = Object.values(b.steps);\n  const passed = steps.filter(s => s.status === 'PASS').length;\n  const issues = Object.entries(b.steps)\n    .filter(([, s]) => s.status === 'FAIL' || s.status === 'BLOCKED')\n    .map(([k, s]) => `${k} ${s.status}`);\n  if (passed === total) ready++;\n  lines.push(`${id}: ${passed}/${total} steps passed` + (issues.length ? ` | open issues: ${issues.join(', ')}` : ''));\n}\n\nconst subject = `Daily commissioning status – ${new Date().toISOString().slice(0, 10)}`;\nconst body = [`Benches tracked: ${Object.keys(benches).length}`, `Release-ready: ${ready}`, '', ...lines].join('\\n');\nreturn [{ json: { subject, body } }];"
+        "jsCode": "const STEPS = {\n  S01: 'Mechanical installation & wiring check',\n  S02: 'Power-up & safety circuit (E-Stop) test',\n  S03: 'Network / CAN communication check',\n  S04: 'Sensor & actuator calibration',\n  S05: 'Software flashing & HIL configuration',\n  S06: 'Reference test run',\n  S07: 'Documentation & release / handover',\n};\n// Process model: which step depends on which (S04 and S05 can run in parallel)\nconst DEPS = { S01: [], S02: ['S01'], S03: ['S02'], S04: ['S03'], S05: ['S03'], S06: ['S04', 'S05'], S07: ['S06'] };\n// Who is responsible for each step (role, not person -> no notification flood)\nconst OWNER = { S01: 'Mechanik', S02: 'Elektrik', S03: 'Elektrik', S04: 'Messtechnik', S05: 'Software', S06: 'Prüfingenieur', S07: 'Projektleitung' };\nconst done = (b, s) => b.steps[s]?.status === 'PASS';\nconst readyToStart = b => Object.keys(STEPS).filter(s => !b.steps[s] && DEPS[s].every(d => done(b, d)));\nconst downstream = s => { const out = new Set(); const walk = x => Object.keys(DEPS).filter(k => DEPS[k].includes(x)).forEach(k => { if (!out.has(k)) { out.add(k); walk(k); } }); walk(s); return [...out].sort(); };\n\nconst db = $getWorkflowStaticData('global');\nconst benches = db.benches || {};\nconst total = Object.keys(STEPS).length;\nconst lines = [];\nlet ready = 0;\n\nfor (const [id, b] of Object.entries(benches).sort()) {\n  const steps = Object.values(b.steps);\n  const passed = steps.filter(s => s.status === 'PASS').length;\n  const issues = Object.entries(b.steps)\n    .filter(([, s]) => s.status === 'FAIL' || s.status === 'BLOCKED')\n    .map(([k, s]) => `${k} ${s.status}`);\n  if (passed === total) ready++;\n  const next = readyToStart(b).map(s => `${s} (${OWNER[s]})`);\n  lines.push(`${id}: ${passed}/${total} steps passed` + (issues.length ? ` | open issues: ${issues.join(', ')}` : '') + (next.length ? ` | ready to start: ${next.join(', ')}` : ''));\n}\n\nconst subject = `Daily commissioning status – ${new Date().toISOString().slice(0, 10)}`;\nconst body = [`Benches tracked: ${Object.keys(benches).length}`, `Release-ready: ${ready}`, '', ...lines].join('\\n');\nreturn [{ json: { subject, body } }];"
       },
-      "id": "b1c12469-5d5c-4daa-9896-ff17d47a0df8",
+      "id": "dd3e4532-c82c-4e03-81cf-55b12a6d4082",
       "name": "Build Daily Status Report",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -347,7 +358,7 @@
     },
     {
       "parameters": {},
-      "id": "ab7a6acd-adda-435f-8c35-5f573c93f769",
+      "id": "33559133-d3f5-42a9-aae1-0cb487aa5c23",
       "name": "Send Report (swap for Outlook / Teams)",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
@@ -429,30 +440,36 @@
             "index": 0
           },
           {
-            "node": "FAIL or BLOCKED?",
+            "node": "Plan Notifications (who + priority)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "FAIL or BLOCKED?": {
+    "Plan Notifications (who + priority)": {
       "main": [
         [
           {
-            "node": "Build Alert Message",
+            "node": "P1 urgent?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P1 urgent?": {
+      "main": [
+        [
+          {
+            "node": "Send Urgent Alert (swap for MS Teams)",
             "type": "main",
             "index": 0
           }
         ],
-        []
-      ]
-    },
-    "Build Alert Message": {
-      "main": [
         [
           {
-            "node": "Notify Team (swap for MS Teams / Email)",
+            "node": "Send Handover to Next Role (swap for Teams chat)",
             "type": "main",
             "index": 0
           }
