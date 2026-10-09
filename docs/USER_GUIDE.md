@@ -1,5 +1,7 @@
 # Kurzanleitung / Quick guide
 
+Ausführliches, bebildertes Benutzerhandbuch (Deutsch): [Benutzerhandbuch.pdf](Benutzerhandbuch.pdf)
+
 ## Deutsch
 
 **Techniker/in am Tablet (Werker-Ansicht)**

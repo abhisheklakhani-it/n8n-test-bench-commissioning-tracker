@@ -8,7 +8,7 @@ The repository also contains the earlier **n8n prototype** of the same idea ([`n
 
 ![Demo on the tablet: tap your name, enter the PIN, start the task, tick the checklist, a value out of range locks "Done", the correct value turns green, the next worker immediately has the next step, the team lead edits what workers see](docs/images/shopfloor-demo.gif)
 
-> **Live demo:** https://test-bench-commissioning.onrender.com (click a role on the login page). All names, test benches and results in the demo are **fictional**.
+> **Live demo:** https://test-bench-commissioning.onrender.com (click a role on the login page) · **User manual (German):** [docs/Benutzerhandbuch.pdf](docs/Benutzerhandbuch.pdf). All names, test benches and results in the demo are **fictional**.
 
 ---
 
@@ -227,7 +227,7 @@ flowchart LR
 | Web | `app/web`, `app/templates`, `app/static` | Thin: parses input, calls a use case, renders HTML. Server-rendered pages, works without JavaScript |
 | Data | `app/models.py`, `app/db.py` | SQLAlchemy 2. PostgreSQL in production, SQLite for the demo and tests |
 
-**Tech stack:** Python 3.12 · FastAPI · SQLAlchemy 2 · Jinja2 · Argon2 · PostgreSQL · Docker · GitHub Actions. Design decisions are recorded in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); a short user guide (DE/EN) is in [docs/USER_GUIDE.md](docs/USER_GUIDE.md).
+**Tech stack:** Python 3.12 · FastAPI · SQLAlchemy 2 · Jinja2 · Argon2 · PostgreSQL · Docker · GitHub Actions. Design decisions are recorded in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). User documentation: the illustrated **user manual (German, PDF)** [docs/Benutzerhandbuch.pdf](docs/Benutzerhandbuch.pdf) and a short guide (DE/EN) in [docs/USER_GUIDE.md](docs/USER_GUIDE.md).
 
 ```
 app/
