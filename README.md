@@ -315,6 +315,8 @@ All demo accounts use the password `Demo-Pruefstand-2026!` (shown on the login p
 
 **Permanent data:** set `DATABASE_URL` to a PostgreSQL database (e.g. a free Neon or Supabase database in the EU) in the Render dashboard; migrations run automatically on start. Without it the free instance uses SQLite on an ephemeral disk.
 
+**Always on:** the free Render instance would sleep after 15 minutes without traffic; a scheduled GitHub Action ([`keepalive.yml`](.github/workflows/keepalive.yml)) pings `/healthz` every 10 minutes. `/healthz` deliberately does not touch the database, so the serverless database can still sleep when nobody uses the app (`/readyz` checks the database for diagnosis).
+
 **Public demo:** **https://test-bench-commissioning.onrender.com** – sign in by clicking a role on the login page (fictional data; the demo resets when the free instance restarts, and the first request after a pause can take about a minute).
 
 **One-click deployment** of your own demo on Render (free plan, Docker, Frankfurt region) with [`render.yaml`](render.yaml):

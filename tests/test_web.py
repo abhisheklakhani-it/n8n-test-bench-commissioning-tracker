@@ -145,5 +145,18 @@ def test_every_used_text_key_exists_in_both_languages():
     assert not missing, missing
 
 
-def test_healthz(client):
-    assert client.get("/healthz").json() == {"status": "ok"}
+def test_healthz_does_not_touch_the_database(client, app):
+    from sqlalchemy import event
+
+    statements = []
+    listener = lambda *args: statements.append(args[2])  # noqa: E731
+    event.listen(app.state.db.engine, "before_cursor_execute", listener)
+    try:
+        assert client.get("/healthz").json() == {"status": "ok"}
+    finally:
+        event.remove(app.state.db.engine, "before_cursor_execute", listener)
+    assert statements == []  # no SQL: frequent pings must not keep the database awake
+
+
+def test_readyz_checks_the_database(client):
+    assert client.get("/readyz").json() == {"status": "ok", "database": "ok"}

@@ -1,0 +1,15 @@
+name: Keep demo awake
+# The free Render instance sleeps after 15 minutes without traffic. A light ping every
+# 10 minutes keeps the public demo responsive. /healthz does not touch the database.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+permissions: {}
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping the live demo
+        run: curl -fsS --retry 5 --retry-delay 20 --retry-all-errors --max-time 90 https://test-bench-commissioning.onrender.com/healthz

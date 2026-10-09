@@ -105,9 +105,17 @@ def status(request: Request):
 
 
 @router.get("/healthz")
-def healthz(request: Request):
-    db_of(request).scalar(select(1))
+def healthz():
+    """Liveness only, no database access: frequent pings (platform health checks, keep-alive)
+    must not keep a serverless database awake around the clock."""
     return {"status": "ok"}
+
+
+@router.get("/readyz")
+def readyz(request: Request):
+    """Readiness including the database (for diagnosis, not for frequent polling)."""
+    db_of(request).scalar(select(1))
+    return {"status": "ok", "database": "ok"}
 
 
 @router.get("/kennzahlen")
