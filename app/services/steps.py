@@ -10,6 +10,17 @@ from app.services import audit
 from app.services.workflow import WorkflowError
 
 
+def normalise(spec: dict) -> dict:
+    """Same content in a different notation (missing kind, 18 vs 18.0) is not a change."""
+    answers = []
+    for a in spec.get("measurements", []):
+        a = {**a, "kind": a.get("kind", "number")}
+        if a["kind"] == "number":
+            a["min"], a["max"] = float(a["min"]), float(a["max"])
+        answers.append(a)
+    return {**spec, "measurements": answers}
+
+
 def can_edit(actor: User, step: StepTemplate) -> bool:
     return can(actor.role, "edit_steps") and (actor.role == ADMIN or (actor.role == LEAD and actor.discipline == step.discipline))
 
@@ -32,7 +43,7 @@ def update_step(db: Session, actor: User, step: StepTemplate, form) -> bool:
         raise WorkflowError(errors[0])
     current = step.to_spec()
     current.pop("version")
-    if current == spec:
+    if normalise(current) == normalise(spec):
         return False
     if not history(db, step.code):  # keep the original definition as version 1
         db.add(StepRevision(step_code=step.code, version=step.version, data=current, user_id=None, at=step.updated_at or utcnow()))

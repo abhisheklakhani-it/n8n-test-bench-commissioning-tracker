@@ -18,7 +18,7 @@ from app.services.auth import hash_password
 
 
 def m(key, de, en, unit, lo, hi):
-    return {"key": key, "label_de": de, "label_en": en, "unit": unit, "min": lo, "max": hi}
+    return {"key": key, "label_de": de, "label_en": en, "kind": "number", "unit": unit, "min": lo, "max": hi}
 
 
 STEPS = [

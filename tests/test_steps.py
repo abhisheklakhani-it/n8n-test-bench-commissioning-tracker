@@ -92,3 +92,12 @@ def test_step_editor_pages(as_user, app):
     r = lead.post("/schritte/S03", data=data, follow_redirects=False)
     assert "err_not_allowed" in r.headers["location"]
     assert as_user("tech.mechanik").get("/schritte").status_code == 403
+
+
+def test_saving_legacy_definition_without_kind_is_no_change(db):
+    """Steps created before 'kind' existed must not get a new version when saved unchanged."""
+    s01 = db.get(StepTemplate, "S01")
+    s01.measurements = [{k: v for k, v in m.items() if k != "kind"} for m in s01.measurements]
+    db.commit()
+    assert steps.update_step(db, u(db, "tl.mechanik"), s01, form_for(s01)) is False
+    assert s01.version == 1

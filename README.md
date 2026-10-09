@@ -251,7 +251,7 @@ Summary (details in [SECURITY.md](SECURITY.md)):
 
 ```bash
 ruff check app tests        # lint incl. security rules
-pytest -q                   # 136 tests: domain, workflow, shop floor, step editor, analysis, web/security, migrations, translations
+pytest -q                   # 137 tests: domain, workflow, shop floor, step editor, analysis, web/security, migrations, translations
 pip-audit -r requirements.txt
 ```
 
