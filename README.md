@@ -18,6 +18,9 @@ The repository also contains the earlier **n8n prototype** of the same idea ([`n
 - [Solution](#solution)
 - [Roles and screens](#roles-and-screens)
 - [How notifications work](#how-notifications-work)
+- [Shop-floor mode for technicians](#shop-floor-mode-for-technicians)
+- [Time tracking and process KPIs](#time-tracking-and-process-kpis)
+- [Private process analysis (value stream analysis)](#private-process-analysis-value-stream-analysis)
 - [Screenshots](#screenshots)
 - [Architecture](#architecture)
 - [Security](#security)
@@ -62,22 +65,23 @@ Commissioning a test bench is a chain of steps done by different teams: mechanic
 |---|---|---|
 | **Department lead** (Leitung) | **Central dashboard** | See all test benches as a matrix with progress and release status, KPIs (in commissioning, released, problems, overdue, average lead time), problems, workload per team; create test benches; **set the notification rules**; manage users; read the audit log |
 | **Team lead** (Teamleitung, per discipline) | **Team dashboard** | See problems, ready, running and upcoming steps of the own discipline; **assign** steps to team members (workload is shown); reopen a step |
-| **Technician** (Techniker/in) | **My tasks** | See big cards: *Problem – please solve*, *Continue*, *Start now*; open a task, follow the instructions, tick the checklist, report the result |
+| **Technician** (Techniker/in) | **Shop-floor screen** (tablet: tap name + PIN) or *My tasks* | See only the one task that is next, follow the instructions, tick the checklist, enter measured values (checked automatically), report the result, pause, call for help |
+| **Process analysis** (Prozessanalyse) | **Analysis workbook** | Private account of the thesis author: value stream mapping, Gemba notes, PDCA actions, KPIs before/after, target state – with full version history |
 
 Every role has the **notification inbox** with a bell counter. Urgent messages also show a red banner on every page. The interface is available in **German and English** and works on phones, tablets and desktops.
 
-### Commissioning process (demo configuration)
+### Commissioning process (demo configuration – an example for a brake / hydraulics test bench)
 
 ```mermaid
 flowchart LR
-    S01["S01 Mechanical installation<br/>Mechanics"] --> S02["S02 Power-up & E-Stop<br/>Electrics"] --> S03["S03 Network & CAN<br/>Electrics"]
-    S03 --> S04["S04 Calibration<br/>Measurement"]
-    S03 --> S05["S05 Software & HIL<br/>Software"]
-    S04 --> S06["S06 Reference run<br/>Testing"]
+    S01["S01 Mechanical set-up & hydraulics<br/>Mechanics"] --> S02["S02 Power supply & E-Stop<br/>Electrics"] --> S03["S03 CAN to brake ECU<br/>Electrics"]
+    S03 --> S04["S04 Pressure sensor calibration<br/>Measurement"]
+    S03 --> S05["S05 Software & ESP configuration<br/>Software"]
+    S04 --> S06["S06 Leak test & reference run<br/>Testing"]
     S05 --> S06 --> S07["S07 Documentation & release<br/>Project mgmt."]
 ```
 
-S04 and S05 run **in parallel**; S06 starts only when **both** are done. Steps, disciplines, instructions and checklists are configuration (`app/seed.py`), validated against unknown references and cycles.
+S04 and S05 run **in parallel**; S06 starts only when **both** are done. Steps, disciplines, instructions, checklists and **measured values with tolerances** (e.g. fitting torque 18–22 Nm, pressure drop 0–2 bar in 60 s) are configuration (`app/seed.py`), validated against unknown references and cycles. **The steps and tolerances in the demo are assumptions** and must be replaced with the real process from the value stream analysis.
 
 ## How notifications work
 
@@ -93,6 +97,7 @@ S04 and S05 run **in parallel**; S06 starts only when **both** are done. Steps, 
 | **Next step delayed** (a previous step has a problem) | Info | The team of the next step |
 | Step **done** | Info | Team lead |
 | Test bench **finished** | Info | Department lead |
+| **Help requested** (technician presses *Call for help*) | **Urgent** | Team lead of the step |
 
 The department lead can change **priority (Urgent / Normal / Info / Off) and recipients for every event** on the *Notification rules* page, and set the escalation time. Changes are audit-logged.
 
@@ -121,6 +126,55 @@ sequenceDiagram
     T2->>App: click notification → task form → Done
     App->>App: S06 still waits for S05 → no message
 ```
+
+## Shop-floor mode for technicians
+
+Built for people who have never used such software, on a shared tablet at the test bench:
+
+1. **Sign in without typing:** tap your name tile, enter a 4–6 digit PIN on a large keypad. (Or scan the **QR code on the test bench** – it opens the sign-in and then directly the task for that bench.)
+2. **One task, full screen:** bench, step, one sentence *what to do*, a big checklist – nothing else. Only the worker's own discipline and only tasks assigned to them or still unassigned.
+3. **Measured values are checked automatically:** each value shows the allowed range and turns **green ✓** or **red ✗** while typing. *Done* is only possible when every checklist item is ticked and every value is inside its tolerance (Poka-Yoke) – the server enforces the same rule. Out-of-range values must be reported as a problem with a short comment.
+4. **Pause / Continue** stops the clock (lunch, waiting for parts); the working time is shown live.
+5. **Call for help** sends an Urgent message to the team lead (once per 10 minutes, no spam).
+6. **New task? The tablet beeps, vibrates and shows it immediately** (checked every 10 s).
+7. **Safety on a shared device:** automatic sign-out after 15 minutes without activity, *Done – sign out* button, PIN lockout after 5 wrong attempts, optional restriction to the factory network (`SHOPFLOOR_NETWORKS`).
+
+| Tap your name | PIN | Value out of range → *Done* locked | All OK |
+|---|---|---|---|
+| ![Tiles](docs/images/shop-tiles.png) | ![PIN](docs/images/shop-pin.png) | ![Out of range](docs/images/shop-task-out-of-range.png) | ![OK](docs/images/shop-task-ok.png) |
+
+Printable QR codes for every test bench (and for the tablet sign-in) are on the *QR codes* page.
+
+## Time tracking and process KPIs
+
+For every task the app records **when it became ready, when it was started, paused and finished**. From this it calculates:
+
+- **Waiting time** (ready → started) and **processing time** (started → done, minus pauses) per step,
+- **lead time** per released test bench and the **flow ratio** (Flussgrad = processing ÷ lead time) – the core metrics of a value stream analysis.
+
+The *KPIs* page (department lead, team leads, analyst) shows averages **per process step, not per person**; steps where people wait longer than they work are highlighted. Personal performance rankings are deliberately not part of the app (works council / GDPR).
+
+![KPIs](docs/images/kpi.png)
+
+## Private process analysis (value stream analysis)
+
+A separate account with the role **Prozessanalyse** opens a workbook for the thesis author:
+
+| Section | Content |
+|---|---|
+| Project & goal | Problem statement, scope (start/end of the process), goal and success criteria, stakeholders |
+| Process mapping (current state) | One entry per step: role, people, input/output, medium, media break, processing and waiting time, parallel?, waste (TIMWOODS), what the next step needs |
+| Gemba & interviews | Date, role (anonymous), place, pain point, quote, idea |
+| Actions (PDCA) | Action, waste addressed, owner, due date, PDCA status, effect |
+| KPIs before / after | Metric, unit, before, after, measurement method |
+| Target state | Flow and handovers, standardisation, digitalisation, tool evaluation, open questions |
+
+- **KPIs are calculated automatically** from the mapping (lead time, processing/waiting time, flow ratio, media breaks, most frequent waste) and shown next to the **times measured live in the app**.
+- **Nothing is ever lost:** every save creates a new version (history per entry), *archive* instead of delete (restorable), and a **complete JSON export** including all versions.
+- **Private:** only the analyst role can open it; in the public demo the account is hidden from the user list and cannot be reset or taken over. The account is created from environment variables (`ANALYST_USERNAME`, `ANALYST_PASSWORD`) – never stored in the repository.
+- **Permanent storage:** use PostgreSQL (`DATABASE_URL`). Schema changes are applied with **Alembic migrations**, so updates never drop data. If the server runs without a permanent database, the analysis page shows a warning.
+
+![Analysis](docs/images/analysis-overview.png)
 
 ## Screenshots
 
@@ -181,11 +235,11 @@ Summary (details in [SECURITY.md](SECURITY.md)):
 
 ```bash
 ruff check app tests        # lint incl. security rules
-pytest -q                   # 72 tests: domain, workflow, web/security, translations
+pytest -q                   # 126 tests: domain, workflow, shop floor, analysis, web/security, migrations, translations
 pip-audit -r requirements.txt
 ```
 
-The tests cover parallel steps and joins, who receives which notification (and who does not), priority ordering, rule changes, escalation, the full permission matrix, CSRF, login throttling, access to other people's data, security headers, open redirects and that every text exists in German and English. CI runs lint, tests, the dependency audit and the Docker build on every push.
+The tests cover measured-value tolerances, pause handling, PIN login with lockout and network restriction, the shop-floor flow, the QR redirect, help requests, the analysis history and its privacy, that the database migrations match the models, parallel steps and joins, who receives which notification (and who does not), priority ordering, rule changes, escalation, the full permission matrix, CSRF, login throttling, access to other people's data, security headers, open redirects and that every text exists in German and English. CI runs lint, tests, the dependency audit and the Docker build on every push.
 
 ## Getting started
 
@@ -210,7 +264,7 @@ pytest -q
 
 ### Demo accounts
 
-All demo accounts use the password `Demo-Pruefstand-2026!` (shown on the login page in demo mode; click a role to sign in).
+All demo accounts use the password `Demo-Pruefstand-2026!` (shown on the login page in demo mode; click a role to sign in). **Shop floor:** open `/werker` (or the big *Worker sign-in* button), tap a technician and enter the demo PIN `2468`.
 
 | Role | Username |
 |---|---|
@@ -230,8 +284,13 @@ All demo accounts use the password `Demo-Pruefstand-2026!` (shown on the login p
 | `SESSION_IDLE_MINUTES` / `SESSION_MAX_HOURS` | `480` / `12` | Session timeouts |
 | `LOGIN_MAX_FAILURES` / `LOGIN_LOCK_MINUTES` | `5` / `10` | Login throttling |
 | `FORWARDED_ALLOW_IPS` | `127.0.0.1` | Trusted reverse proxy addresses (Docker image) |
+| `SHOPFLOOR_IDLE_MINUTES` | `15` | Automatic sign-out of tablet (PIN) sessions |
+| `SHOPFLOOR_NETWORKS` | *(empty = any)* | Comma-separated CIDR ranges that may use the PIN sign-in, e.g. `10.0.0.0/8` |
+| `ANALYST_USERNAME` / `ANALYST_PASSWORD` / `ANALYST_FULL_NAME` | *(empty)* | Creates the private process-analysis account once at start-up (never reset afterwards) |
 
 ## Live demo and deployment
+
+**Permanent data:** set `DATABASE_URL` to a PostgreSQL database (e.g. a free Neon or Supabase database in the EU) in the Render dashboard; migrations run automatically on start. Without it the free instance uses SQLite on an ephemeral disk.
 
 **Public demo:** **https://test-bench-commissioning.onrender.com** – sign in by clicking a role on the login page (fictional data; the demo resets when the free instance restarts, and the first request after a pause can take about a minute).
 
@@ -244,10 +303,11 @@ All demo accounts use the password `Demo-Pruefstand-2026!` (shown on the login p
 ## Roadmap
 
 - [ ] Single sign-on with Microsoft Entra ID (OIDC); local passwords only as fallback
-- [ ] Database migrations with Alembic
 - [ ] Process editor in the UI (steps, dependencies, checklists per test bench type)
 - [ ] Push channels: Microsoft Teams / e-mail for Urgent messages, daily digest for Info
 - [ ] Attachments (photos, measurement files) per step
+- [ ] Read measured values directly from the test bench (no typing) via the n8n layer or an API
+- [ ] Offline mode for tablets with poor Wi-Fi
 - [ ] KPI history: lead time per bench, waiting time at handovers, time to detect failures
 - [ ] Integration with test bench networks and analysis tools via the n8n layer or REST API
 

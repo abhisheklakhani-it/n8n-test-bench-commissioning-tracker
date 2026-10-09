@@ -25,7 +25,15 @@
       <dt>{{ t('ready_since') }}</dt><dd>{{ task.ready_at|local }}</dd>
       <dt>{{ t('started') }}</dt><dd>{{ task.started_at|local }}</dd>
       <dt>{{ t('finished') }}</dt><dd>{{ task.finished_at|local }}</dd>
+      <dt>{{ t('waiting_time') }}</dt><dd>{{ waited|mins }}</dd>
+      <dt>{{ t('working_time') }}</dt><dd>{{ worked|mins }}{% if task.paused_at %} ({{ t('paused') }}){% endif %}</dd>
     </dl>
+    {% if task.step.measurements and task.values %}
+    <table class="tbl small-tbl"><tr><th>{{ t('measurement') }}</th><th>{{ t('value') }}</th><th>{{ t('allowed') }}</th></tr>
+      {% for m in task.step.measurements %}{% set v = task.values.get(m.key) %}
+      <tr><td>{{ m.label_en if lang == 'en' else m.label_de }}</td><td class="{{ 'bad-t' if v is not none and not (m.min <= v <= m.max) }}">{{ v if v is not none else '–' }} {{ m.unit }}</td><td>{{ m.min }} … {{ m.max }} {{ m.unit }}</td></tr>
+      {% endfor %}</table>
+    {% endif %}
     {% if task.comment %}<div class="note {{ 'bad' if task.status in ('FAIL','BLOCKED') }}"><b>{{ t('comment') }}:</b> {{ task.comment }}</div>{% endif %}
     {% if task.measurement %}<p><b>{{ t('measurement') }}:</b> {{ task.measurement }}</p>{% endif %}
   </section>
@@ -55,6 +63,13 @@
         <label class="check"><input type="checkbox" name="check" value="{{ loop.index0 }}"{% if loop.index0 in task.checklist_done %} checked{% endif %}><span>{{ item }}</span></label>
         {% endfor %}
       </div>
+      {% for m in task.step.measurements %}
+      <label class="measure" data-min="{{ m.min }}" data-max="{{ m.max }}">
+        <span class="m-label">{{ m.label_en if lang == 'en' else m.label_de }}</span>
+        <span class="m-row"><input name="v_{{ m.key }}" inputmode="decimal" autocomplete="off" maxlength="12" value="{{ task.values.get(m.key, '') if task.values else '' }}"><b class="m-unit">{{ m.unit }}</b><span class="m-state" aria-live="polite"></span></span>
+        <span class="m-range">{{ t('allowed') }}: {{ m.min }} … {{ m.max }} {{ m.unit }}</span>
+      </label>
+      {% endfor %}
       <label>{{ t('measurement_optional') }}<input name="measurement" maxlength="200" value="{{ task.measurement }}"></label>
       <label>{{ t('comment_label') }}<textarea name="comment" rows="3" maxlength="2000">{{ task.comment if task.status in ('FAIL','BLOCKED') else '' }}</textarea></label>
       <p class="muted small" id="pass-hint">{{ t('pass_hint') }}</p>

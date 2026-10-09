@@ -57,7 +57,8 @@ def test_notification_click_opens_the_task_form_and_submit_updates_everything(ap
     page = c.get(f"/aufgabe/{task_id}")
     assert "Checkliste" in page.text and 'value="PASS"' in page.text
     token = csrf_of(page.text)
-    r = c.post(f"/aufgabe/{task_id}/ergebnis", data={"csrf": token, "result": "PASS", "check": ["0", "1", "2"]}, follow_redirects=False)
+    data = {"csrf": token, "result": "PASS", "check": ["0", "1", "2"], "v_torque": "20"}
+    r = c.post(f"/aufgabe/{task_id}/ergebnis", data=data, follow_redirects=False)
     assert r.headers["location"] == "/aufgaben?ok=ok_saved"
     with app.state.db.SessionLocal() as db:
         assert db.get(Task, task_id).status == "PASS"

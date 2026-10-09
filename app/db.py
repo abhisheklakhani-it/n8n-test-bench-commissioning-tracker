@@ -33,15 +33,27 @@ def make_engine(url: str):
     return create_engine(url, pool_pre_ping=True)
 
 
+def alembic_config():
+    from alembic.config import Config
+
+    cfg = Config()
+    cfg.set_main_option("script_location", str(Path(__file__).parent / "migrations"))
+    return cfg
+
+
 class Database:
     def __init__(self, url: str):
         self.engine = make_engine(url)
         self.SessionLocal = sessionmaker(bind=self.engine, autoflush=False, expire_on_commit=False)
 
-    def create_all(self) -> None:
-        from app import models  # noqa: F401  (register tables)
+    def migrate(self) -> None:
+        """Brings the schema to the newest version. Existing data is never dropped."""
+        from alembic import command
 
-        Base.metadata.create_all(self.engine)
+        with self.engine.begin() as connection:
+            cfg = alembic_config()
+            cfg.attributes["connection"] = connection
+            command.upgrade(cfg, "head")
 
     def session(self) -> Iterator[Session]:
         db = self.SessionLocal()

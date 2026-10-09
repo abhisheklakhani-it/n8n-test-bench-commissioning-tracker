@@ -75,3 +75,53 @@ def validate_dependencies(deps: Mapping[str, Iterable[str]]) -> None:
 def can_reopen(deps: Mapping[str, Iterable[str]], statuses: Mapping[str, str], step: str) -> bool:
     """A passed step may be reopened only while no following step has been started."""
     return statuses.get(step) == PASS and not any(statuses.get(s) in STARTED_STATUSES for s in downstream(deps, step))
+
+
+def check_values(definitions: list[dict], raw: Mapping[str, str]) -> tuple[dict[str, float], list[str], list[str]]:
+    """Parses measured values against their definitions.
+    Returns (values, out_of_range_keys, missing_or_invalid_keys). Accepts "1,5" and "1.5"."""
+    values: dict[str, float] = {}
+    out_of_range: list[str] = []
+    invalid: list[str] = []
+    for d in definitions:
+        text = str(raw.get(d["key"], "")).strip().replace(",", ".")
+        try:
+            number = float(text)
+        except ValueError:
+            invalid.append(d["key"])
+            continue
+        if number != number or number in (float("inf"), float("-inf")):  # NaN / inf
+            invalid.append(d["key"])
+            continue
+        values[d["key"]] = number
+        if not (d["min"] <= number <= d["max"]):
+            out_of_range.append(d["key"])
+    return values, out_of_range, invalid
+
+
+def in_range(definition: dict, value: float | None) -> bool | None:
+    if value is None:
+        return None
+    return definition["min"] <= value <= definition["max"]
+
+
+def working_seconds(started, finished, paused_seconds: int, paused_at, now) -> int | None:
+    """Active working time: from start to finish (or now), minus pauses."""
+    if started is None:
+        return None
+    end = finished or now
+    pause = paused_seconds + (int((now - paused_at).total_seconds()) if paused_at and not finished else 0)
+    return max(0, int((end - started).total_seconds()) - pause)
+
+
+def waiting_seconds(ready, started, now) -> int | None:
+    """Waiting time: from 'ready' until somebody started (or until now if still waiting)."""
+    if ready is None:
+        return None
+    return max(0, int(((started or now) - ready).total_seconds()))
+
+
+def flow_ratio(processing: float, waiting: float) -> float | None:
+    """Flussgrad = processing time / lead time (processing + waiting)."""
+    total = processing + waiting
+    return processing / total if total > 0 else None

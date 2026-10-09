@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}{{ t('shop_my_task') }}{% endblock %}
+{% block header %}
+<header class="shop-bar">
+  <span class="shop-me"><span class="avatar">{{ user.full_name.split(' ')[0][:1] }}{{ user.full_name.split(' ')[-1][:1] }}</span>{{ user.full_name }}</span>
+  <form method="post" action="/sprache"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="/werker/aufgabe"><button class="btn small">{{ 'EN' if lang == 'de' else 'DE' }}</button></form>
+  <form method="post" action="/werker/abmelden"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn small">{{ t('shop_logout') }}</button></form>
+</header>
+{% endblock %}
+{% block content %}
+<div class="shop" data-shop="1" data-open="{{ open_count }}">
+  {% if new %}<div class="new-task" role="alert"><svg class="ic"><use href="#i-bell"/></svg>{{ t('shop_new_task') }}</div>{% endif %}
+
+  {% if not task %}
+  <div class="empty">
+    <svg class="ic huge ok-c"><use href="#i-check"/></svg>
+    <h1>{{ t('shop_nothing') }}</h1>
+    <p class="shop-sub">{{ t('shop_nothing_hint') }}</p>
+  </div>
+  {% else %}
+  {% set mine = task.assignee_id == user.id %}
+  <section class="job st-border-{{ task.status|lower }}">
+    <div class="job-head">
+      <div>
+        <div class="job-bench">{{ task.bench.code }}</div>
+        <div class="job-place">{{ task.bench.name }}{% if task.bench.location %} · {{ task.bench.location }}{% endif %}</div>
+      </div>
+      <span class="big-status st-{{ task.status|lower }}">{{ L.status(task.status, lang) }}</span>
+    </div>
+    <h1 class="job-step">{{ L.step_name(task.step, lang) }}</h1>
+    <p class="job-todo">{{ L.step_instructions(task.step, lang) }}</p>
+    {% if task.comment and task.status in ('FAIL', 'BLOCKED') %}<div class="note bad">“{{ task.comment }}”</div>{% endif %}
+
+    {% if task.status == 'READY' %}
+      <form method="post" action="/werker/aufgabe/{{ task.id }}/start"><input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="btn primary giant"><svg class="ic"><use href="#i-play"/></svg>{{ t('start_now') }}</button></form>
+    {% else %}
+      <div class="timer-row">
+        <span class="timer {{ 'paused' if task.paused_at }}" data-start="{{ task.started_at|iso }}" data-paused="{{ task.paused_seconds }}" data-paused-at="{{ task.paused_at|iso }}" data-worked="{{ worked or 0 }}">–</span>
+        <span class="muted">{{ t('shop_working_time') }}</span>
+        {% if task.status == 'IN_PROGRESS' %}
+          {% if task.paused_at %}
+          <form method="post" action="/werker/aufgabe/{{ task.id }}/weiter"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn primary"><svg class="ic"><use href="#i-play"/></svg>{{ t('shop_resume') }}</button></form>
+          {% else %}
+          <form method="post" action="/werker/aufgabe/{{ task.id }}/pause"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn"><svg class="ic"><use href="#i-clock"/></svg>{{ t('shop_pause') }}</button></form>
+          {% endif %}
+        {% endif %}
+      </div>
+
+      {% if task.paused_at %}
+      <div class="paused-box">{{ t('shop_paused') }}</div>
+      {% else %}
+      <form method="post" action="/werker/aufgabe/{{ task.id }}/ergebnis" class="result-form shop-form">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <div class="checklist">
+          {% for item in L.checklist(task.step, lang) %}
+          <label class="check big"><input type="checkbox" name="check" value="{{ loop.index0 }}"{% if loop.index0 in task.checklist_done %} checked{% endif %}><span>{{ item }}</span></label>
+          {% endfor %}
+        </div>
+        {% for m in task.step.measurements %}
+        <label class="measure" data-min="{{ m.min }}" data-max="{{ m.max }}">
+          <span class="m-label">{{ m.label_en if lang == 'en' else m.label_de }}</span>
+          <span class="m-row">
+            <input name="v_{{ m.key }}" inputmode="decimal" autocomplete="off" maxlength="12" value="{{ task.values.get(m.key, '') if task.values else '' }}">
+            <b class="m-unit">{{ m.unit }}</b>
+            <span class="m-state" aria-live="polite"></span>
+          </span>
+          <span class="m-range">{{ t('allowed') }}: {{ m.min }} … {{ m.max }} {{ m.unit }}</span>
+        </label>
+        {% endfor %}
+        <p class="muted" id="pass-hint">{{ t('shop_pass_hint') }}</p>
+        <button class="btn ok giant" name="result" value="PASS" id="pass-btn"><svg class="ic"><use href="#i-check"/></svg>{{ t('shop_done') }}</button>
+        <details class="problem">
+          <summary>{{ t('shop_problem') }}</summary>
+          <label>{{ t('shop_what_wrong') }}<textarea name="comment" rows="3" maxlength="2000"></textarea></label>
+          <div class="result-buttons two">
+            <button class="btn bad big" name="result" value="FAIL"><svg class="ic"><use href="#i-x"/></svg>{{ t('result_fail') }}</button>
+            <button class="btn warn big" name="result" value="BLOCKED"><svg class="ic"><use href="#i-stop"/></svg>{{ t('result_blocked') }}</button>
+          </div>
+        </details>
+      </form>
+      {% endif %}
+    {% endif %}
+
+    <form method="post" action="/werker/aufgabe/{{ task.id }}/hilfe" class="help-form" data-confirm="{{ t('confirm_help') }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="btn help"><svg class="ic"><use href="#i-users"/></svg>{{ t('shop_help') }}</button>
+    </form>
+  </section>
+
+  {% if others %}
+  <p class="shop-sub">{{ t('shop_more', n=others|length) }}</p>
+  <div class="mini-list">{% for o in others %}<a href="/werker/aufgabe?id={{ o.id }}" class="chip st-{{ o.status|lower }}">{{ o.bench.code }} · {{ o.step_code }}</a>{% endfor %}</div>
+  {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

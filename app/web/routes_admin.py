@@ -8,10 +8,10 @@ from sqlalchemy import select
 
 from app.config import settings
 from app.domain import notifications as N
-from app.domain.roles import ADMIN, DISCIPLINES, LEAD, ROLES, TECH
+from app.domain.roles import ADMIN, ANALYST, DISCIPLINES, LEAD, ROLES, TECH
 from app.models import AppSetting, AuditLog, NotificationRule, User
 from app.services import audit
-from app.services.auth import end_all_sessions, hash_password, password_problems
+from app.services.auth import end_all_sessions, hash_password, password_problems, pin_problems
 from app.web.deps import db_of, form_with_csrf, redirect, render, require
 from app.web.routes_auth import DEMO_USERNAMES
 
@@ -71,11 +71,26 @@ async def rules_reset(request: Request):
     return redirect("/regeln?ok=ok_rules")
 
 
+def _visible_users(db) -> list[User]:
+    """In the public demo the private analysis account is not listed (and cannot be managed)."""
+    q = select(User).order_by(User.role, User.discipline, User.full_name)
+    if settings.demo_mode:
+        q = q.where(User.role != ANALYST)
+    return list(db.scalars(q))
+
+
+def _assignable_roles() -> tuple[str, ...]:
+    return tuple(r for r in ROLES if r != ANALYST) if settings.demo_mode else ROLES
+
+
+def _protected(target: User) -> bool:
+    return settings.demo_mode and (target.username in DEMO_USERNAMES or target.role == ANALYST)
+
+
 @router.get("/benutzer")
 def users_page(request: Request):
     user, sess = require(request, "manage_users")
-    users = list(db_of(request).scalars(select(User).order_by(User.role, User.discipline, User.full_name)))
-    return render(request, "users.html", user, sess, users=users, roles=ROLES, disciplines=DISCIPLINES, temp_password="")
+    return render(request, "users.html", user, sess, users=_visible_users(db_of(request)), roles=_assignable_roles(), disciplines=DISCIPLINES, temp_password="")
 
 
 @router.post("/benutzer")
@@ -90,9 +105,9 @@ async def users_create(request: Request):
     password = str(form.get("password", ""))
     if not USERNAME_RE.match(username) or not full_name:
         return redirect("/benutzer?err=err_user_input")
-    if role not in ROLES or (role in (LEAD, TECH) and discipline not in DISCIPLINES):
+    if role not in _assignable_roles() or (role in (LEAD, TECH) and discipline not in DISCIPLINES):
         return redirect("/benutzer?err=err_user_role")
-    if role == ADMIN:
+    if role in (ADMIN, ANALYST):
         discipline = None
     if db.scalar(select(User).where(User.username == username)):
         return redirect("/benutzer?err=err_user_exists")
@@ -120,7 +135,7 @@ async def users_toggle(request: Request, user_id: int):
     target = _target(request, user_id)
     if target.id == user.id:
         return redirect("/benutzer?err=err_self")
-    if settings.demo_mode and target.username in DEMO_USERNAMES:
+    if _protected(target):
         return redirect("/benutzer?err=err_demo_protected")
     target.active = not target.active
     if not target.active:
@@ -136,7 +151,7 @@ async def users_reset_password(request: Request, user_id: int):
     await form_with_csrf(request, sess)
     db = db_of(request)
     target = _target(request, user_id)
-    if settings.demo_mode and target.username in DEMO_USERNAMES:
+    if _protected(target):
         return redirect("/benutzer?err=err_demo_protected")
     temp = "Tmp-" + secrets.token_urlsafe(9) + "7"
     target.password_hash = hash_password(temp)
@@ -145,8 +160,29 @@ async def users_reset_password(request: Request, user_id: int):
     audit.log(db, user, "password_reset", username=target.username)
     db.commit()
     # shown exactly once to the admin, who hands it over personally
-    return render(request, "users.html", user, sess, users=list(db.scalars(select(User).order_by(User.role, User.discipline, User.full_name))),
-                  roles=ROLES, disciplines=DISCIPLINES, temp_password=temp, temp_for=target.username)
+    return render(request, "users.html", user, sess, users=_visible_users(db), roles=_assignable_roles(), disciplines=DISCIPLINES,
+                  temp_password=temp, temp_for=target.username)
+
+
+@router.post("/benutzer/{user_id}/pin")
+async def users_set_pin(request: Request, user_id: int):
+    """PIN for the shop-floor tablet login (technicians only)."""
+    user, sess = require(request, "manage_users")
+    form = await form_with_csrf(request, sess)
+    db = db_of(request)
+    target = _target(request, user_id)
+    if target.role != TECH:
+        return redirect("/benutzer?err=err_pin_role")
+    if _protected(target):
+        return redirect("/benutzer?err=err_demo_protected")
+    pin = str(form.get("pin", "")).strip()
+    problems = pin_problems(pin)
+    if problems:
+        return redirect(f"/benutzer?err={problems[0]}")
+    target.pin_hash = hash_password(pin)
+    audit.log(db, user, "pin_set", username=target.username)
+    db.commit()
+    return redirect("/benutzer?ok=ok_pin")
 
 
 @router.get("/protokoll")

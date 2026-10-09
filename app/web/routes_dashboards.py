@@ -2,14 +2,17 @@
 
 from datetime import timedelta
 
+import segno
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy import func, select
 
+from app.config import settings
 from app.domain import process as P
 from app.domain.roles import ADMIN, DISCIPLINES, TECH
 from app.models import AuditLog, Bench, Notification, StepTemplate, Task, User, utcnow
-from app.services import notify, workflow
+from app.seed import reset_demo_work
+from app.services import audit, metrics, notify, workflow
 from app.services.workflow import WorkflowError
 from app.web.deps import current_session, db_of, form_with_csrf, redirect, render, require
 
@@ -97,10 +100,47 @@ def status(request: Request):
         return JSONResponse({"auth": False}, status_code=401)
     db = db_of(request)
     version = f"{db.scalar(select(func.max(AuditLog.id))) or 0}-{db.scalar(select(func.max(Notification.id))) or 0}"
-    return {"auth": True, "badge": notify.badge_count(db, sess.user_id), "high": notify.has_open_high(db, sess.user_id), "v": version}
+    open_tasks = len(workflow.open_tasks_for(db, sess.user)) if sess.user.role == TECH else 0
+    return {"auth": True, "badge": notify.badge_count(db, sess.user_id), "high": notify.has_open_high(db, sess.user_id), "v": version, "open": open_tasks}
 
 
 @router.get("/healthz")
 def healthz(request: Request):
     db_of(request).scalar(select(1))
     return {"status": "ok"}
+
+
+@router.get("/kennzahlen")
+def kpi_page(request: Request):
+    """Measured waiting and working times per step: the live input for the value stream analysis."""
+    user, sess = require(request, "view_kpis")
+    db = db_of(request)
+    rows = metrics.step_times(db)
+    return render(request, "kpi.html", user, sess, rows=rows, total=metrics.totals(rows), leads=metrics.bench_lead_times(db))
+
+
+@router.get("/qr")
+def qr_codes(request: Request):
+    """Printable QR codes: one per test bench, opens the worker's task for that bench."""
+    user, sess = require(request, "print_qr")
+    base = str(request.base_url).rstrip("/")
+    codes = []
+    for bench in db_of(request).scalars(select(Bench).order_by(Bench.code)):
+        url = f"{base}/werker/pruefstand/{bench.code}"
+        codes.append((bench, url, segno.make(url, error="m").svg_inline(scale=5, dark="#14213d")))
+    login_url = f"{base}/werker"
+    return render(request, "qr.html", user, sess, codes=codes, login_url=login_url,
+                  login_svg=segno.make(login_url, error="m").svg_inline(scale=5, dark="#14213d"))
+
+
+@router.post("/demo/zuruecksetzen")
+async def demo_reset(request: Request):
+    user, sess = require(request, "reset_demo")
+    await form_with_csrf(request, sess)
+    if not settings.demo_mode:
+        raise HTTPException(status_code=403)
+    db = db_of(request)
+    reset_demo_work(db)
+    audit.log(db, user, "demo_reset")
+    db.commit()
+    return redirect("/leitung?ok=ok_demo_reset")

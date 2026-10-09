@@ -5,7 +5,7 @@ import secrets
 from fastapi import APIRouter, Request
 
 from app.config import settings
-from app.domain.roles import ADMIN, LEAD
+from app.domain.roles import ADMIN, ANALYST, LEAD
 from app.seed import DEMO_USERS
 from app.services import audit
 from app.services.auth import authenticate, create_session, end_all_sessions, end_session, hash_password, password_problems, verify_password
@@ -16,7 +16,7 @@ DEMO_USERNAMES = {u[0] for u in DEMO_USERS}
 
 
 def home_for(role: str) -> str:
-    return {ADMIN: "/leitung", LEAD: "/team"}.get(role, "/aufgaben")
+    return {ADMIN: "/leitung", LEAD: "/team", ANALYST: "/analyse"}.get(role, "/aufgaben")
 
 
 def safe_next(value: str, fallback: str = "/") -> str:

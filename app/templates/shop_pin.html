@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}PIN{% endblock %}
+{% block content %}
+<div class="shop narrow">
+  <a class="back" href="/werker">‹ {{ t('back') }}</a>
+  <div class="who-big"><span class="avatar big">{{ worker.full_name.split(' ')[0][:1] }}{{ worker.full_name.split(' ')[-1][:1] }}</span><b>{{ worker.full_name }}</b></div>
+  <p class="shop-sub">{{ t('shop_enter_pin') }}</p>
+  {% if error %}<div class="flash err" role="alert">{{ t(error) }}</div>{% endif %}
+  <form method="post" action="/werker/pin/{{ worker.id }}" class="pin-form">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="next" value="{{ next }}">
+    <input class="pin-input" id="pin" name="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" required aria-label="PIN">
+    <div class="pin-dots" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="keypad">
+      {% for d in ['1','2','3','4','5','6','7','8','9'] %}<button type="button" class="key" data-digit="{{ d }}">{{ d }}</button>{% endfor %}
+      <button type="button" class="key del" data-del="1" aria-label="{{ t('delete') }}">⌫</button>
+      <button type="button" class="key" data-digit="0">0</button>
+      <button class="key ok" aria-label="OK"><svg class="ic"><use href="#i-check"/></svg></button>
+    </div>
+  </form>
+  {% if demo_pin %}<p class="muted center">{{ t('demo_pin_hint') }} <code>{{ demo_pin }}</code></p>{% endif %}
+</div>
+{% endblock %}

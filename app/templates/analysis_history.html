@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ t('history') }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="/analyse">{{ t('nav_analysis') }}</a> › <a href="/analyse/{{ section_key }}">{{ section.en if lang == 'en' else section.de }}</a> › {{ t('history') }}</p>
+<h1>{{ t('history') }}</h1>
+<p class="muted">{{ t('history_hint') }}</p>
+{% for r in entry.revisions %}
+<section class="card">
+  <h2>{{ t('rev_' ~ r.action) }} · {{ r.at|local('%d.%m.%Y %H:%M') }}{% if r.user %} · {{ r.user.full_name }}{% endif %}</h2>
+  <dl class="facts">{% for f in section.fields %}{% if r.data.get(f.key) %}<dt>{{ f.en if lang == 'en' else f.de }}</dt><dd>{{ r.data.get(f.key) }}</dd>{% endif %}{% endfor %}</dl>
+</section>
+{% endfor %}
+{% endblock %}

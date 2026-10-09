@@ -1,5 +1,6 @@
-# One-click public demo on Render (free plan). Fictional data only.
-# The free plan has no persistent disk: the demo resets to the seed data on every restart.
+# Public demo on Render (free plan, Docker, Frankfurt). Fictional demo data.
+# For data that must survive restarts and updates (e.g. the process analysis), set DATABASE_URL to a
+# PostgreSQL database in the Render dashboard. Without it the app uses SQLite on an ephemeral disk.
 services:
   - type: web
     name: test-bench-commissioning
@@ -15,5 +16,12 @@ services:
         value: "1"
       - key: FORWARDED_ALLOW_IPS
         value: "*"
+      # secrets: entered in the Render dashboard, never stored in the repository
       - key: DATABASE_URL
-        value: sqlite:///./data/app.db
+        sync: false
+      - key: ANALYST_USERNAME
+        sync: false
+      - key: ANALYST_PASSWORD
+        sync: false
+      - key: ANALYST_FULL_NAME
+        sync: false

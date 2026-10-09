@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{{ t('nav_kpis') }}{% endblock %}
+{% block content %}
+<h1>{{ t('kpi_title') }}</h1>
+<p class="muted">{{ t('kpi_intro') }}</p>
+<div class="kpis">
+  <div class="kpi"><b>{{ total.lead_min|mins }}</b><span>{{ t('lead_time') }}</span></div>
+  <div class="kpi"><b>{{ total.work_min|mins }}</b><span>{{ t('processing_time') }}</span></div>
+  <div class="kpi warn"><b>{{ total.wait_min|mins }}</b><span>{{ t('waiting_time') }}</span></div>
+  <div class="kpi info"><b>{{ total.flow_pct ~ ' %' if total.flow_pct is not none else '–' }}</b><span>{{ t('flow_ratio') }}</span></div>
+</div>
+<section class="card scroll">
+  <h2><svg class="ic"><use href="#i-clock"/></svg>{{ t('per_step') }}</h2>
+  <table class="tbl">
+    <tr><th>{{ t('step') }}</th><th>{{ t('team') }}</th><th>{{ t('done_count') }}</th><th>{{ t('waiting_time') }} Ø</th><th>{{ t('processing_time') }} Ø</th><th>{{ t('flow_ratio') }}</th></tr>
+    {% for r in rows %}
+    {% set lead = (r.avg_work_min or 0) + (r.avg_wait_min or 0) %}
+    <tr>
+      <td><b>{{ r.step.code }}</b> {{ L.step_name(r.step, lang) }}</td>
+      <td>{{ L.discipline(r.step.discipline, lang) }}</td>
+      <td>{{ r.done }}</td>
+      <td class="{{ 'bad-t' if (r.avg_wait_min or 0) > (r.avg_work_min or 0) and r.avg_wait_min }}">{{ r.avg_wait_min|mins }}</td>
+      <td>{{ r.avg_work_min|mins }}</td>
+      <td>{{ ((100 * (r.avg_work_min or 0) / lead)|round(0)|int ~ ' %') if lead else '–' }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <p class="muted small">{{ t('kpi_red_hint') }}</p>
+</section>
+<section class="card">
+  <h2><svg class="ic"><use href="#i-chart"/></svg>{{ t('bench_lead_times') }}</h2>
+  <ul class="people">{% for b, hours in leads %}<li><a href="/pruefstand/{{ b.code }}">{{ b.code }} · {{ b.name }}</a><span>{{ (hours / 24)|round(1) }} {{ t('days') }}</span></li>{% else %}<li class="muted">–</li>{% endfor %}</ul>
+  <p class="muted small">{{ t('kpi_privacy') }}</p>
+</section>
+{% endblock %}

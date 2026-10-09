@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>{% block title %}{{ t('app_name') }}{% endblock %} · {{ t('app_name') }}</title>
+<link rel="icon" href="data:,">
 <link rel="stylesheet" href="/static/app.css">
 <script src="/static/app.js" defer></script>
 </head>
@@ -25,6 +26,7 @@
 
 {% if demo %}<div class="demo-banner">{{ t('demo_banner') }}</div>{% endif %}
 
+{% block header %}
 {% if user %}
 <header class="top">
   <a class="brand" href="/">{{ t('app_name') }}</a>
@@ -34,12 +36,20 @@
       <a href="/team" class="{{ 'on' if path == '/team' }}"><svg class="ic"><use href="#i-users"/></svg>{{ t('nav_teams') }}</a>
       <a href="/regeln" class="{{ 'on' if path == '/regeln' }}"><svg class="ic"><use href="#i-gear"/></svg>{{ t('nav_rules') }}</a>
       <a href="/benutzer" class="{{ 'on' if path == '/benutzer' }}"><svg class="ic"><use href="#i-users"/></svg>{{ t('nav_users') }}</a>
+      <a href="/kennzahlen" class="{{ 'on' if path == '/kennzahlen' }}"><svg class="ic"><use href="#i-clock"/></svg>{{ t('nav_kpis') }}</a>
+      <a href="/qr" class="{{ 'on' if path == '/qr' }}"><svg class="ic"><use href="#i-list"/></svg>{{ t('nav_qr') }}</a>
       <a href="/protokoll" class="{{ 'on' if path == '/protokoll' }}"><svg class="ic"><use href="#i-file"/></svg>{{ t('nav_audit') }}</a>
     {% elif user.role == 'LEAD' %}
       <a href="/team" class="{{ 'on' if path == '/team' }}"><svg class="ic"><use href="#i-users"/></svg>{{ t('nav_my_team') }}</a>
       <a href="/aufgaben" class="{{ 'on' if path == '/aufgaben' }}"><svg class="ic"><use href="#i-list"/></svg>{{ t('nav_my_tasks') }}</a>
+      <a href="/kennzahlen" class="{{ 'on' if path == '/kennzahlen' }}"><svg class="ic"><use href="#i-clock"/></svg>{{ t('nav_kpis') }}</a>
+      <a href="/qr" class="{{ 'on' if path == '/qr' }}"><svg class="ic"><use href="#i-list"/></svg>{{ t('nav_qr') }}</a>
+    {% elif user.role == 'ANALYST' %}
+      <a href="/analyse" class="{{ 'on' if path.startswith('/analyse') }}"><svg class="ic"><use href="#i-file"/></svg>{{ t('nav_analysis') }}</a>
+      <a href="/kennzahlen" class="{{ 'on' if path == '/kennzahlen' }}"><svg class="ic"><use href="#i-clock"/></svg>{{ t('nav_kpis') }}</a>
     {% else %}
       <a href="/aufgaben" class="{{ 'on' if path == '/aufgaben' }}"><svg class="ic"><use href="#i-list"/></svg>{{ t('nav_my_tasks') }}</a>
+      <a href="/werker/aufgabe"><svg class="ic"><use href="#i-play"/></svg>{{ t('nav_shop') }}</a>
     {% endif %}
     <a href="/meldungen" class="bell {{ 'on' if path == '/meldungen' }}"><svg class="ic"><use href="#i-bell"/></svg>{{ t('nav_inbox') }}<span id="badge" class="badge"{% if not badge %} hidden{% endif %}>{{ badge }}</span></a>
   </nav>
@@ -53,6 +63,7 @@
 <a class="urgent-bar" href="/meldungen"><svg class="ic"><use href="#i-bell"/></svg>{{ t('urgent_bar') }}</a>
 {% endif %}
 {% endif %}
+{% endblock %}
 
 <main class="wrap">
   {% if ok %}{% set msg = t(ok) %}{% if msg != ok %}<div class="flash ok" role="status"><svg class="ic"><use href="#i-check"/></svg>{{ msg }}</div>{% endif %}{% endif %}

@@ -22,6 +22,13 @@ class Settings:
     login_max_failures: int = int(os.getenv("LOGIN_MAX_FAILURES", "5"))
     login_lock_minutes: int = int(os.getenv("LOGIN_LOCK_MINUTES", "10"))
     timezone: str = os.getenv("APP_TIMEZONE", "Europe/Berlin")
+    # Shop-floor tablets: short idle timeout; optionally only from these networks (comma-separated CIDR, empty = any)
+    shopfloor_idle_minutes: int = int(os.getenv("SHOPFLOOR_IDLE_MINUTES", "15"))
+    shopfloor_networks: str = os.getenv("SHOPFLOOR_NETWORKS", "")
+    # Private process-analysis account, created once at start-up if both are set (never shown on the login page)
+    analyst_username: str = os.getenv("ANALYST_USERNAME", "")
+    analyst_password: str = os.getenv("ANALYST_PASSWORD", "")
+    analyst_full_name: str = os.getenv("ANALYST_FULL_NAME", "Prozessanalyse")
 
 
 settings = Settings()

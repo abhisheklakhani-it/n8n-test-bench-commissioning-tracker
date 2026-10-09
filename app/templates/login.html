@@ -3,6 +3,7 @@
 {% block content %}
 <div class="login">
   <h1>{{ t('app_name') }}</h1>
+  <a class="btn primary giant shop-entry" href="/werker"><svg class="ic"><use href="#i-users"/></svg>{{ t('shop_entry') }}</a>
   <p class="muted">{{ t('login_intro') }}</p>
   {% if error %}<div class="flash err" role="alert">{{ t(error) }}</div>{% endif %}
   <form method="post" action="/login" class="card stack">

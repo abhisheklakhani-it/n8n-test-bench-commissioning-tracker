@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ t('shop_who') }}{% endblock %}
+{% block content %}
+<div class="shop">
+  <h1 class="shop-title">{{ t('shop_who') }}</h1>
+  <p class="shop-sub">{{ t('shop_tap_name') }}</p>
+  {% for disc, workers in groups %}
+  <h2 class="shop-group">{{ L.discipline(disc, lang) }}</h2>
+  <div class="tiles">
+    {% for w in workers %}
+    <a class="tile" href="/werker/pin/{{ w.id }}{% if next %}?next={{ next|urlencode }}{% endif %}">
+      <span class="avatar">{{ w.full_name.split(' ')[0][:1] }}{{ w.full_name.split(' ')[-1][:1] }}</span>
+      <span class="tile-name">{{ w.full_name }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% endfor %}
+  <p class="shop-foot"><a href="/login">{{ t('office_login') }}</a></p>
+</div>
+{% endblock %}

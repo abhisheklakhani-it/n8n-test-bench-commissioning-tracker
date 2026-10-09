@@ -17,6 +17,9 @@ ignore = ["S101", "B008"]
 "tests/*" = ["S105", "S106"]
 "app/config.py" = ["S105"]
 "app/web/i18n.py" = ["E501"]  # long user-facing sentences
+"app/seed.py" = ["E501"]  # process configuration texts
+"app/domain/analysis.py" = ["E501"]
+"app/migrations/*" = ["E501", "UP", "I"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

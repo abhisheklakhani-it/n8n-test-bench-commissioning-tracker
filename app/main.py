@@ -9,8 +9,8 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.db import Database
-from app.seed import ensure_process, seed_demo
-from app.web import routes_admin, routes_auth, routes_dashboards, routes_work
+from app.seed import ensure_analyst, ensure_process, seed_demo
+from app.web import routes_admin, routes_analysis, routes_auth, routes_dashboards, routes_shopfloor, routes_work
 from app.web.deps import LoginRequired, current_session, render
 from app.web.security import SecurityHeadersMiddleware
 
@@ -19,12 +19,13 @@ log = logging.getLogger("commissioning")
 
 def create_app(database_url: str | None = None, demo_seed: bool | None = None) -> FastAPI:
     db = Database(database_url or settings.database_url)
-    db.create_all()
+    db.migrate()
     with db.SessionLocal() as s:
         if settings.demo_mode if demo_seed is None else demo_seed:
             seed_demo(s)
         else:
             ensure_process(s)
+            ensure_analyst(s)
 
     app = FastAPI(title="Test Bench Commissioning", docs_url=None, redoc_url=None, openapi_url=None)
     app.state.db = db
@@ -39,7 +40,7 @@ def create_app(database_url: str | None = None, demo_seed: bool | None = None) -
 
     app.add_middleware(SecurityHeadersMiddleware)
     app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
-    for module in (routes_auth, routes_work, routes_dashboards, routes_admin):
+    for module in (routes_auth, routes_work, routes_dashboards, routes_admin, routes_shopfloor, routes_analysis):
         app.include_router(module.router)
 
     @app.exception_handler(LoginRequired)

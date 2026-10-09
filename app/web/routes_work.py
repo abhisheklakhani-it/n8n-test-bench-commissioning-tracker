@@ -65,8 +65,12 @@ def task_page(request: Request, task_id: int):
     team = []
     if may_assign:
         team = list(db.scalars(select(User).where(User.role == TECH, User.discipline == task.discipline, User.active.is_(True)).order_by(User.full_name)))
+    now = utcnow()
+    worked = P.working_seconds(task.started_at, task.finished_at, task.paused_seconds, task.paused_at, now)
+    waited = P.waiting_seconds(task.ready_at, task.started_at, now)
     return render(request, "task.html", user, sess, task=task, before=before, after=after, may_work=may_work,
-                  may_assign=may_assign, may_reopen=may_reopen, team=team)
+                  may_assign=may_assign, may_reopen=may_reopen, team=team,
+                  worked=worked / 60 if worked is not None else None, waited=waited / 60 if waited is not None else None)
 
 
 async def _task_action(request: Request, task_id: int, action):
@@ -100,7 +104,10 @@ async def task_result(request: Request, task_id: int):
                 checked.append(int(value))
             except ValueError:
                 continue
-        workflow.submit_result(db, user, task, str(form.get("result", "")), str(form.get("comment", "")), str(form.get("measurement", "")), checked)
+        values = {k[2:]: str(v) for k, v in form.items() if k.startswith("v_")}
+        workflow.submit_result(
+            db, user, task, str(form.get("result", "")), str(form.get("comment", "")), str(form.get("measurement", "")), checked, values
+        )
         return "/aufgaben?ok=ok_saved" if user.role == TECH else f"/aufgabe/{task.id}?ok=ok_saved"
 
     return await _task_action(request, task_id, act)
@@ -150,7 +157,7 @@ async def inbox_mark_all(request: Request):
 @router.get("/meldung/{notification_id}")
 def open_notification(request: Request, notification_id: int):
     """Click on a message -> mark it read -> go straight to the place where the work is done."""
-    user, _ = require_user(request)
+    user, sess = require_user(request)
     db = db_of(request)
     n = db.get(Notification, notification_id)
     if n is None or n.user_id != user.id:
@@ -158,6 +165,8 @@ def open_notification(request: Request, notification_id: int):
     if n.read_at is None:
         n.read_at = utcnow()
         db.commit()
+    if n.task_id and sess.kind == "pin":  # shop-floor tablet: open the big one-task screen
+        return redirect(f"/werker/aufgabe?id={n.task_id}")
     if n.task_id:
         return redirect(f"/aufgabe/{n.task_id}")
     if n.bench is not None:

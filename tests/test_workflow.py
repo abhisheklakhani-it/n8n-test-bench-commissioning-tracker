@@ -6,6 +6,7 @@ from sqlalchemy import select
 from app.domain import notifications as N
 from app.domain import process as P
 from app.models import Notification, NotificationRule, Task, User
+from app.seed import good_values
 from app.services import workflow
 from app.services.workflow import WorkflowError
 
@@ -37,7 +38,7 @@ def all_checks(t):
 
 def passed(db, bench, code, username):
     t = task(bench, code)
-    workflow.submit_result(db, u(db, username), t, P.PASS, "", "", all_checks(t))
+    workflow.submit_result(db, u(db, username), t, P.PASS, "", "", all_checks(t), good_values(t.step))
 
 
 @pytest.fixture()
@@ -97,7 +98,7 @@ def test_fixing_a_failure_continues_the_flow_and_closes_the_alert(db, bench):
 def test_pass_requires_full_checklist_and_failure_requires_comment(db, bench):
     t = task(bench, "S01")
     with pytest.raises(WorkflowError) as e:
-        workflow.submit_result(db, u(db, "tech.mechanik"), t, P.PASS, "", "", [0])
+        workflow.submit_result(db, u(db, "tech.mechanik"), t, P.PASS, "", "", [0], good_values(t.step))
     assert e.value.key == "err_checklist"
     with pytest.raises(WorkflowError) as e:
         workflow.submit_result(db, u(db, "tech.mechanik"), t, P.BLOCKED, "   ", "", [])
@@ -112,7 +113,7 @@ def test_other_discipline_and_colleagues_task_are_forbidden(db, bench):
     t2 = task(bench, "S02")
     workflow.start_task(db, u(db, "tech.elektrik"), t2)
     with pytest.raises(WorkflowError):
-        workflow.submit_result(db, u(db, "tech.elektrik2"), t2, P.PASS, "", "", all_checks(t2))
+        workflow.submit_result(db, u(db, "tech.elektrik2"), t2, P.PASS, "", "", all_checks(t2), good_values(t2.step))
 
 
 def test_waiting_step_cannot_be_started(db, bench):

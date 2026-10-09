@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ section.en if lang == 'en' else section.de }}{% endblock %}
+{% macro field_input(f, value) %}
+  {% set label = f.en if lang == 'en' else f.de %}
+  <label>{{ label }}{% if f.required %} *{% endif %}
+  {% if f.kind == 'textarea' %}<textarea name="{{ f.key }}" rows="3" maxlength="4000"{% if f.required %} required{% endif %}>{{ value }}</textarea>
+  {% elif f.kind == 'choice' %}<select name="{{ f.key }}"><option value="">–</option>{% for c in f.choices %}<option value="{{ c }}"{% if c == value %} selected{% endif %}>{{ c }}</option>{% endfor %}</select>
+  {% elif f.kind == 'number' %}<input name="{{ f.key }}" inputmode="decimal" maxlength="20" value="{{ value }}">
+  {% elif f.kind == 'date' %}<input name="{{ f.key }}" type="date" value="{{ value }}">
+  {% else %}<input name="{{ f.key }}" maxlength="400" value="{{ value }}"{% if f.required %} required{% endif %}>{% endif %}
+  </label>
+{% endmacro %}
+{% block content %}
+<p class="crumbs"><a href="/analyse">{{ t('nav_analysis') }}</a> › {{ section.en if lang == 'en' else section.de }}</p>
+<nav class="tabs mb">{% for key, s in sections.items() %}<a href="/analyse/{{ key }}" class="{{ 'on' if key == section_key }}">{{ s.en if lang == 'en' else s.de }}</a>{% endfor %}</nav>
+<h1>{{ section.en if lang == 'en' else section.de }}</h1>
+<p class="muted">{{ section.hint_en if lang == 'en' else section.hint_de }}</p>
+
+{% if kpi %}
+<div class="kpis">
+  <div class="kpi"><b>{{ kpi.lead_min|mins }}</b><span>{{ t('lead_time') }}</span></div>
+  <div class="kpi warn"><b>{{ kpi.waiting_min|mins }}</b><span>{{ t('waiting_time') }}</span></div>
+  <div class="kpi info"><b>{{ kpi.flow_pct ~ ' %' if kpi.flow_pct is not none else '–' }}</b><span>{{ t('flow_ratio') }}</span></div>
+  <div class="kpi bad"><b>{{ kpi.media_breaks }}</b><span>{{ t('media_breaks') }}</span></div>
+</div>
+{% endif %}
+
+{% if not section.single %}
+<section class="card scroll">
+  <table class="tbl">
+    <tr>{% for f in section.fields[:4] %}<th>{{ f.en if lang == 'en' else f.de }}</th>{% endfor %}<th></th></tr>
+    {% for r in rows %}
+    <tr>
+      {% for f in section.fields[:4] %}<td>{{ r.data.get(f.key, '') }}</td>{% endfor %}
+      <td class="actions">
+        <a class="btn small" href="/analyse/{{ section_key }}?edit={{ r.id }}">{{ t('edit') }}</a>
+        <a class="btn small" href="/analyse/eintrag/{{ r.id }}/verlauf">{{ t('history') }}</a>
+        <form method="post" action="/analyse/eintrag/{{ r.id }}/archivieren" data-confirm="{{ t('confirm_archive') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn small">{{ t('archive') }}</button></form>
+      </td>
+    </tr>
+    {% else %}<tr><td colspan="5" class="muted">{{ t('analysis_empty') }}</td></tr>{% endfor %}
+  </table>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>{% if edit %}{{ t('edit') }}{% else %}{{ t('new_entry') }}{% endif %}{% if edit %} · <a href="/analyse/eintrag/{{ edit.id }}/verlauf" class="small">{{ t('history') }}</a>{% endif %}</h2>
+  <form method="post" action="/analyse/{{ section_key }}" class="stack form-grid">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    {% if edit %}<input type="hidden" name="entry_id" value="{{ edit.id }}">{% endif %}
+    {% for f in section.fields %}{{ field_input(f, edit.data.get(f.key, '') if edit else '') }}{% endfor %}
+    <div class="inline">
+      <button class="btn primary">{{ t('save') }}</button>
+      {% if edit and not section.single %}<a class="btn" href="/analyse/{{ section_key }}">{{ t('cancel') }}</a>{% endif %}
+    </div>
+    <p class="muted small">{{ t('analysis_safe_hint') }}</p>
+  </form>
+</section>
+
+{% if archived %}
+<section class="card">
+  <h2>{{ t('archived') }}</h2>
+  <ul class="people">{% for r in archived %}<li><span>{{ r.data.get(section.fields[0].key, '') }}</span>
+    <form method="post" action="/analyse/eintrag/{{ r.id }}/wiederherstellen"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn small">{{ t('restore') }}</button></form></li>{% endfor %}</ul>
+</section>
+{% endif %}
+{% endblock %}

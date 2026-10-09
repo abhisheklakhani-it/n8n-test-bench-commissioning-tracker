@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ t('nav_qr') }}{% endblock %}
+{% block content %}
+<div class="row-between no-print">
+  <h1>{{ t('qr_title') }}</h1>
+  <button class="btn primary" id="print-btn" type="button">{{ t('print') }}</button>
+</div>
+<p class="muted no-print">{{ t('qr_intro') }}</p>
+<div class="qr-grid">
+  <div class="qr-card">
+    <b>{{ t('shop_entry') }}</b>
+    <div class="qr">{{ login_svg|safe }}</div>
+    <small>{{ login_url }}</small>
+  </div>
+  {% for bench, url, svg in codes %}
+  <div class="qr-card">
+    <b>{{ t('bench') }} {{ bench.code }}</b>
+    <span>{{ bench.name }}{% if bench.location %} · {{ bench.location }}{% endif %}</span>
+    <div class="qr">{{ svg|safe }}</div>
+    <small>{{ url }}</small>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

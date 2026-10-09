@@ -27,7 +27,20 @@ def _local(dt, fmt: str = "%d.%m. %H:%M") -> str:
     return dt.replace(tzinfo=ZoneInfo("UTC")).astimezone(_TZ).strftime(fmt)
 
 
+def _mins(value) -> str:
+    if value is None:
+        return "–"
+    hours, minutes = divmod(int(round(value)), 60)
+    return f"{hours} h {minutes:02d} min" if hours else f"{minutes} min"
+
+
+def _iso(dt) -> str:
+    return dt.isoformat() + "Z" if dt else ""
+
+
 templates.env.filters["local"] = _local
+templates.env.filters["mins"] = _mins
+templates.env.filters["iso"] = _iso
 
 
 class LoginRequired(Exception):

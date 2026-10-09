@@ -1,7 +1,13 @@
 {% extends "base.html" %}
 {% block title %}{{ t('nav_overview') }}{% endblock %}
 {% block content %}
-<h1>{{ t('central_title') }}</h1>
+<div class="row-between">
+  <h1>{{ t('central_title') }}</h1>
+  <div class="inline">
+    <a class="btn small" href="/kennzahlen"><svg class="ic"><use href="#i-clock"/></svg>{{ t('nav_kpis') }}</a>
+    {% if demo %}<form method="post" action="/demo/zuruecksetzen" data-confirm="{{ t('confirm_demo_reset') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn small">{{ t('demo_reset') }}</button></form>{% endif %}
+  </div>
+</div>
 <div class="kpis">
   <div class="kpi"><b>{{ kpi.active }}</b><span>{{ t('kpi_active') }}</span></div>
   <div class="kpi ok"><b>{{ kpi.released }}</b><span>{{ t('kpi_released') }}</span></div>

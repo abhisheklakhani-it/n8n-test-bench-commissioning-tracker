@@ -81,3 +81,30 @@ stateDiagram-v2
 
 *Decision:* Argon2id, server-side sessions, CSRF on every form, strict CSP, permission checks in use cases, audit log, pinned and audited dependencies, non-root container.
 *Consequences:* Suitable as a basis for an internal tool; SSO (Entra ID) is the next step for company use.
+
+### ADR 8 – Alembic migrations, data is never dropped
+
+*Context:* The process analysis and real commissioning data must survive every update.
+*Decision:* The schema is versioned with Alembic (`app/migrations`); the app upgrades to `head` on start. A test compares the migrations with the models, so a model change without a migration fails CI.
+*Consequences:* Safe updates on PostgreSQL; every schema change needs a migration file.
+
+### ADR 9 – Shop-floor mode with PIN sign-in
+
+*Context:* Technicians share tablets at the test bench, wear gloves and have no software training.
+*Decision:* Name tiles + PIN pad, one task per screen, automatic tolerance check, short session timeout, optional network restriction, QR codes per bench, polling for new tasks with sound and vibration.
+*Consequences:* Very low entry barrier; PIN security relies on lockout, short sessions and the factory network – single sign-on or badge readers can replace it later.
+
+### ADR 10 – Measured values with tolerances as configuration
+
+*Decision:* Each step defines its measured values (unit, min, max). *Done* is impossible outside the tolerance (Poka-Yoke); the value is stored with the task.
+*Consequences:* Data quality at the source; tolerances must come from the real test specifications.
+
+### ADR 11 – Process KPIs, not personal performance
+
+*Decision:* Waiting and processing times are aggregated per process step and per bench. No person-level rankings.
+*Consequences:* Supports the value stream analysis and is compatible with works-council and GDPR requirements.
+
+### ADR 12 – Private analysis workbook with revision history
+
+*Decision:* A separate `ANALYST` role; entries are stored as JSON with a revision row for every create/update/archive/restore; archive instead of delete; JSON export.
+*Consequences:* The thesis author's analysis cannot be lost by editing and is not visible to other roles.

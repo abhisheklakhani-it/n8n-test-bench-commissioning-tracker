@@ -4,7 +4,7 @@ import pytest
 
 from app.domain import notifications as N
 from app.domain import process as P
-from app.domain.roles import ADMIN, LEAD, PERMISSIONS, ROLES, TECH, can, can_work_on
+from app.domain.roles import ADMIN, ANALYST, LEAD, PERMISSIONS, ROLES, TECH, can, can_work_on
 
 DEPS = {"S01": [], "S02": ["S01"], "S03": ["S02"], "S04": ["S03"], "S05": ["S03"], "S06": ["S04", "S05"], "S07": ["S06"]}
 
@@ -86,9 +86,11 @@ def test_every_event_has_a_default_rule():
 @pytest.mark.parametrize("role", ROLES)
 def test_permission_matrix(role, action):
     expected = {
-        ADMIN: set(PERMISSIONS),
-        LEAD: {"view_team_dashboard", "view_my_tasks", "work_on_task", "assign_task", "reopen_task"},
-        TECH: {"view_my_tasks", "work_on_task"},
+        ADMIN: {"view_central_dashboard", "view_team_dashboard", "view_my_tasks", "work_on_task", "assign_task", "reopen_task",
+                "create_bench", "manage_users", "manage_rules", "view_audit", "view_kpis", "print_qr", "reset_demo"},
+        LEAD: {"view_team_dashboard", "view_my_tasks", "work_on_task", "assign_task", "reopen_task", "view_kpis", "print_qr"},
+        TECH: {"view_my_tasks", "work_on_task", "use_shopfloor"},
+        ANALYST: {"view_kpis", "use_analysis"},  # the private analysis is not visible to anybody else
     }[role]
     assert can(role, action) == (action in expected)
 

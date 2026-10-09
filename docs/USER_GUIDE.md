@@ -2,7 +2,16 @@
 
 ## Deutsch
 
-**Techniker/in**
+**Techniker/in am Tablet (Werker-Ansicht)**
+1. Auf **Werker-Anmeldung** tippen (oder den QR-Code am Prüfstand scannen).
+2. Auf den eigenen **Namen** tippen und die **PIN** eingeben.
+3. Es erscheint **eine** Aufgabe: **Jetzt starten** drücken.
+4. Alles abhaken und die **Messwerte** eintragen. Grün = in Ordnung, Rot = außerhalb des erlaubten Bereichs.
+5. **Fertig – alles OK** drücken. Bei Rot oder einem anderen Problem: **Es gibt ein Problem** → kurz beschreiben → **Fehler** oder **Blockiert**.
+6. Pause? **Pause** drücken, später **Weiter**. Hilfe nötig? **Hilfe rufen**.
+7. Kommt eine neue Aufgabe, piept das Tablet. Am Ende **Fertig – abmelden** (nach 15 Minuten ohne Aktivität automatisch).
+
+**Techniker/in am PC**
 1. Anmelden. Sie sehen **Meine Aufgaben** mit großen Karten: *Problem – bitte lösen*, *Weitermachen*, *Jetzt starten*.
 2. Auf eine Karte tippen. Oben steht **Was ist zu tun?**.
 3. **Jetzt starten** drücken, die Arbeit machen und jeden Punkt der **Checkliste** abhaken.
@@ -21,10 +30,25 @@ Die **Glocke** zeigt neue Meldungen. Ein Klick auf eine Meldung öffnet direkt d
 - **Meldungs-Regeln**: für jedes Ereignis Priorität (Dringend, Normal, Info, Aus) und Empfänger festlegen; Eskalationszeit einstellen.
 - **Benutzer**: Personen anlegen, deaktivieren, Passwort zurücksetzen.
 - **Protokoll**: wer hat wann was getan.
+- **Kennzahlen**: Warte- und Bearbeitungszeit je Schritt, Flussgrad, Durchlaufzeit je Prüfstand.
+- **QR-Codes**: ausdrucken und an die Prüfstände kleben.
+
+**Prozessanalyse (eigener Zugang)**
+- **Prozessanalyse**: Projekt & Ziel, Prozessaufnahme mit Zeiten und Verschwendung, Gemba & Interviews, Maßnahmen (PDCA), Kennzahlen vorher/nachher, Soll-Zustand.
+- Speichern legt eine neue Fassung an; **Verlauf** zeigt alle Fassungen; **Archivieren** statt Löschen; **Alles exportieren** sichert alles als Datei.
 
 ## English
 
-**Technician**
+**Technician on the tablet (shop-floor view)**
+1. Tap **Worker sign-in** (or scan the QR code on the test bench).
+2. Tap your **name** and enter your **PIN**.
+3. You see **one** task: press **Start now**.
+4. Tick everything and enter the **measured values**. Green = OK, red = outside the allowed range.
+5. Press **Done – all OK**. If something is red or wrong: **There is a problem** → describe it briefly → **Failure** or **Blocked**.
+6. Break? Press **Pause**, later **Continue**. Need help? **Call for help**.
+7. When a new task arrives, the tablet beeps. At the end press **Done – sign out** (automatic after 15 minutes without activity).
+
+**Technician on a PC**
 1. Sign in. You see **My tasks** with big cards: *Problem – please solve*, *Continue*, *Start now*.
 2. Tap a card. **What to do?** is shown at the top.
 3. Press **Start now**, do the work and tick every **checklist** item.
@@ -43,3 +67,9 @@ The **bell** shows new notifications. Clicking one opens the matching task direc
 - **Notification rules**: priority (Urgent, Normal, Info, Off) and recipients for every event; escalation time.
 - **Users**: create, deactivate, reset passwords.
 - **Audit log**: who did what and when.
+- **KPIs**: waiting and processing time per step, flow ratio, lead time per test bench.
+- **QR codes**: print them and stick them on the test benches.
+
+**Process analysis (own account)**
+- **Process analysis**: project & goal, process mapping with times and waste, Gemba & interviews, actions (PDCA), KPIs before/after, target state.
+- Saving creates a new version; **History** shows all versions; **Archive** instead of delete; **Export everything** saves it all to a file.

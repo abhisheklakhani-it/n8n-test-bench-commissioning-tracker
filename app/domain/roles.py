@@ -1,7 +1,7 @@
 """Roles, disciplines and the permission matrix (single source of truth, unit-tested)."""
 
-ADMIN, LEAD, TECH = "ADMIN", "LEAD", "TECH"
-ROLES = (ADMIN, LEAD, TECH)
+ADMIN, LEAD, TECH, ANALYST = "ADMIN", "LEAD", "TECH", "ANALYST"
+ROLES = (ADMIN, LEAD, TECH, ANALYST)
 
 DISCIPLINES = ("MECH", "ELEC", "MEAS", "SW", "TEST", "PM")
 
@@ -17,6 +17,12 @@ PERMISSIONS: dict[str, frozenset[str]] = {
     "manage_users": frozenset({ADMIN}),
     "manage_rules": frozenset({ADMIN}),
     "view_audit": frozenset({ADMIN}),
+    "view_kpis": frozenset({ADMIN, LEAD, ANALYST}),
+    "print_qr": frozenset({ADMIN, LEAD}),
+    "reset_demo": frozenset({ADMIN}),
+    "use_shopfloor": frozenset({TECH}),
+    # the process analysis is personal working material of the analyst (thesis author)
+    "use_analysis": frozenset({ANALYST}),
 }
 
 

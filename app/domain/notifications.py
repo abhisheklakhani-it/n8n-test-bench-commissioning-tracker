@@ -14,6 +14,7 @@ TASK_OVERDUE = "TASK_OVERDUE"
 DOWNSTREAM_DELAYED = "DOWNSTREAM_DELAYED"
 STEP_PASSED = "STEP_PASSED"
 BENCH_RELEASED = "BENCH_RELEASED"
+HELP_REQUESTED = "HELP_REQUESTED"
 
 EVENT_TYPES = (
     STEP_FAILED,
@@ -24,6 +25,7 @@ EVENT_TYPES = (
     DOWNSTREAM_DELAYED,
     STEP_PASSED,
     BENCH_RELEASED,
+    HELP_REQUESTED,
 )
 
 
@@ -50,6 +52,7 @@ DEFAULT_RULES: dict[str, Rule] = {
     DOWNSTREAM_DELAYED: Rule(LOW, to_next_team=True),
     STEP_PASSED: Rule(LOW, to_team_lead=True),
     BENCH_RELEASED: Rule(LOW, to_admin=True),
+    HELP_REQUESTED: Rule(HIGH, to_team_lead=True),
 }
 
 # TASK_READY goes to the assignee if one exists, otherwise to the whole team of that step.

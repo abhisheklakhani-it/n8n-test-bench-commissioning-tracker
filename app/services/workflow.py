@@ -1,6 +1,7 @@
 """Use cases of the commissioning workflow. Every function checks permissions first,
 changes state, emits notifications and writes the audit log in one transaction."""
 
+from collections.abc import Mapping
 from datetime import timedelta
 
 from sqlalchemy import select
@@ -96,7 +97,9 @@ def start_task(db: Session, actor: User, task: Task) -> None:
     db.commit()
 
 
-def submit_result(db: Session, actor: User, task: Task, result: str, comment: str, measurement: str, checked: list[int]) -> None:
+def submit_result(
+    db: Session, actor: User, task: Task, result: str, comment: str, measurement: str, checked: list[int], values_raw: Mapping[str, str] | None = None
+) -> None:
     _require_task_access(actor, task)
     if result not in P.RESULT_STATUSES:
         raise WorkflowError("err_result")
@@ -109,6 +112,11 @@ def submit_result(db: Session, actor: User, task: Task, result: str, comment: st
         raise WorkflowError("err_checklist")
     if result in (P.FAIL, P.BLOCKED) and not comment:
         raise WorkflowError("err_comment_required")
+    values, out_of_range, invalid = P.check_values(task.step.measurements or [], values_raw or {})
+    if result == P.PASS and invalid:
+        raise WorkflowError("err_values_missing")
+    if result == P.PASS and out_of_range:  # Poka-Yoke: a value outside the tolerance can never be "done"
+        raise WorkflowError("err_out_of_range")
 
     now = utcnow()
     if task.started_at is None:
@@ -119,13 +127,17 @@ def submit_result(db: Session, actor: User, task: Task, result: str, comment: st
     task.comment = comment
     task.measurement = measurement.strip()[:200]
     task.checklist_done = checked
+    task.values = values
+    if task.paused_at is not None:  # finishing while paused: the pause ends now
+        task.paused_seconds += int((now - task.paused_at).total_seconds())
+        task.paused_at = None
     task.finished_at = now if result == P.PASS else None
     db.flush()
 
     bench = task.bench
     deps = _deps(db)
     by_step = _task_by_step(bench)
-    notify.resolve_for_task(db, task.id, (N.TASK_READY, N.TASK_ASSIGNED, N.TASK_OVERDUE, N.STEP_FAILED, N.STEP_BLOCKED))
+    notify.resolve_for_task(db, task.id, (N.TASK_READY, N.TASK_ASSIGNED, N.TASK_OVERDUE, N.STEP_FAILED, N.STEP_BLOCKED, N.HELP_REQUESTED))
 
     if result == P.PASS:
         notify.emit(db, N.STEP_PASSED, task=task, actor_id=actor.id, params=_step_params(task))
@@ -180,6 +192,7 @@ def reopen_task(db: Session, actor: User, task: Task) -> None:
             t.status, t.ready_at = P.WAITING, None
             notify.resolve_for_task(db, t.id, (N.TASK_READY, N.TASK_ASSIGNED, N.TASK_OVERDUE))
     task.status, task.finished_at = P.IN_PROGRESS, None
+    task.paused_at = None
     bench.released_at = None
     audit.log(db, actor, "task_reopened", bench=bench.code, step=task.step_code)
     db.commit()
@@ -199,3 +212,53 @@ def check_overdue(db: Session, now=None) -> int:
     if tasks:
         db.commit()
     return count
+
+
+def pause_task(db: Session, actor: User, task: Task) -> None:
+    _require_task_access(actor, task)
+    if task.status != P.IN_PROGRESS or task.paused_at is not None:
+        raise WorkflowError("err_wrong_state")
+    task.paused_at = utcnow()
+    audit.log(db, actor, "task_paused", bench=task.bench.code, step=task.step_code)
+    db.commit()
+
+
+def resume_task(db: Session, actor: User, task: Task) -> None:
+    _require_task_access(actor, task)
+    if task.paused_at is None:
+        raise WorkflowError("err_wrong_state")
+    task.paused_seconds += int((utcnow() - task.paused_at).total_seconds())
+    task.paused_at = None
+    audit.log(db, actor, "task_resumed", bench=task.bench.code, step=task.step_code)
+    db.commit()
+
+
+def request_help(db: Session, actor: User, task: Task) -> int:
+    """'Call for help' from the shop floor -> urgent message to the team lead (once per 10 minutes)."""
+    _require_task_access(actor, task)
+    if task.status not in (P.READY, P.IN_PROGRESS, P.FAIL, P.BLOCKED):
+        raise WorkflowError("err_wrong_state")
+    window = int(utcnow().timestamp() // 600)
+    created = notify.emit(
+        db, N.HELP_REQUESTED, task=task, actor_id=actor.id, params=_step_params(task, worker=actor.full_name), dedupe=f"help:{task.id}:{window}"
+    )
+    audit.log(db, actor, "help_requested", bench=task.bench.code, step=task.step_code)
+    db.commit()
+    return created
+
+
+def open_tasks_for(db: Session, user: User) -> list[Task]:
+    """What a technician may work on: own discipline, assigned to them or still unassigned.
+    Order: my running task first, then problems, then ready tasks (oldest first)."""
+    rank = {P.IN_PROGRESS: 0, P.FAIL: 1, P.BLOCKED: 1, P.READY: 2}
+    tasks = list(
+        db.scalars(
+            select(Task).where(
+                Task.discipline == user.discipline,
+                Task.status.in_(P.OPEN_STATUSES),
+                (Task.assignee_id == user.id) | (Task.assignee_id.is_(None)),
+            )
+        )
+    )
+    mine_first = sorted(tasks, key=lambda t: (rank[t.status], t.assignee_id != user.id, t.ready_at or utcnow()))
+    return [t for t in mine_first if t.status != P.IN_PROGRESS or t.assignee_id == user.id]
