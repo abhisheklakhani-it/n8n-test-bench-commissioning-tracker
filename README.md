@@ -8,7 +8,7 @@ The repository also contains the earlier **n8n prototype** of the same idea ([`n
 
 ![Demo: a notification opens the task, the technician ticks the checklist, the next team is notified and the dashboard updates](docs/images/app-demo.gif)
 
-> All names, test benches and results in the demo are **fictional**.
+> **Live demo:** https://test-bench-commissioning.onrender.com (click a role on the login page). All names, test benches and results in the demo are **fictional**.
 
 ---
 
@@ -233,7 +233,7 @@ All demo accounts use the password `Demo-Pruefstand-2026!` (shown on the login p
 
 ## Live demo and deployment
 
-**Public demo:** see the website link in the repository description (fictional data; it resets when the free instance restarts, and the first request after a pause can take about a minute).
+**Public demo:** **https://test-bench-commissioning.onrender.com** – sign in by clicking a role on the login page (fictional data; the demo resets when the free instance restarts, and the first request after a pause can take about a minute).
 
 **One-click deployment** of your own demo on Render (free plan, Docker, Frankfurt region) with [`render.yaml`](render.yaml):
 
