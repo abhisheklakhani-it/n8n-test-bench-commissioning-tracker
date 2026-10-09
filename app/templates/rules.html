@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ t('nav_rules') }}{% endblock %}
+{% block content %}
+<h1>{{ t('rules_title') }}</h1>
+<div class="card explain">
+  <h2>{{ t('rules_how_title') }}</h2>
+  <ol>
+    <li>{{ t('rules_how_1') }}</li>
+    <li>{{ t('rules_how_2') }}</li>
+    <li>{{ t('rules_how_3') }}</li>
+    <li>{{ t('rules_how_4') }}</li>
+  </ol>
+</div>
+<form method="post" action="/regeln" class="card">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="scroll">
+  <table class="tbl rules">
+    <tr><th>{{ t('event') }}</th><th>{{ t('priority') }}</th><th>{{ t('to_assignee') }}</th><th>{{ t('to_team') }}</th><th>{{ t('to_team_lead') }}</th><th>{{ t('to_admin') }}</th><th>{{ t('to_next_team') }}</th></tr>
+    {% for r in rules %}
+    <tr>
+      <td><b>{{ L.event_name(r.event_type, lang) }}</b><small>{{ L.event_desc(r.event_type, lang) }}</small></td>
+      <td><select name="{{ r.event_type }}.priority" aria-label="{{ t('priority') }}">
+        {% for p in [1, 2, 3, 0] %}<option value="{{ p }}"{% if r.priority == p %} selected{% endif %}>{{ L.priority(p, lang) }}</option>{% endfor %}
+      </select></td>
+      {% for f in ['to_assignee', 'to_team', 'to_team_lead', 'to_admin', 'to_next_team'] %}
+      <td class="c"><input type="checkbox" name="{{ r.event_type }}.{{ f }}" aria-label="{{ t(f) }}"{% if r[f] %} checked{% endif %}></td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  <label class="inline-label">{{ t('overdue_hours') }} <input type="number" name="overdue_hours" min="1" max="72" value="{{ hours }}"></label>
+  <button class="btn primary">{{ t('save') }}</button>
+</form>
+<form method="post" action="/regeln/standard" data-confirm="{{ t('confirm_defaults') }}">
+  <input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn">{{ t('restore_defaults') }}</button>
+</form>
+{% endblock %}

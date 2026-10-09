@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}{{ t('nav_overview') }}{% endblock %}
+{% block content %}
+<h1>{{ t('central_title') }}</h1>
+<div class="kpis">
+  <div class="kpi"><b>{{ kpi.active }}</b><span>{{ t('kpi_active') }}</span></div>
+  <div class="kpi ok"><b>{{ kpi.released }}</b><span>{{ t('kpi_released') }}</span></div>
+  <div class="kpi bad"><b>{{ kpi.problems }}</b><span>{{ t('kpi_problems') }}</span></div>
+  <div class="kpi warn"><b>{{ kpi.overdue }}</b><span>{{ t('kpi_overdue') }}</span></div>
+  <div class="kpi"><b>{{ kpi.lead_days if kpi.lead_days is not none else '–' }}</b><span>{{ t('kpi_lead_days') }}</span></div>
+</div>
+
+{% if problems %}
+<section><h2 class="h-problem"><svg class="ic"><use href="#i-x"/></svg>{{ t('problems_now') }}</h2>
+<div class="cards">{% for task in problems %}
+<a class="task-card problem" href="/aufgabe/{{ task.id }}"><span class="tc-bench">{{ task.bench.code }} · {{ L.status(task.status, lang) }}</span><span class="tc-step">{{ L.step_name(task.step, lang) }}</span>
+<span class="tc-note">“{{ task.comment }}”</span><span class="tc-meta">{{ L.discipline(task.discipline, lang) }} · {{ task.assignee.full_name if task.assignee else t('nobody_yet') }}</span></a>
+{% endfor %}</div></section>
+{% endif %}
+
+<section class="card">
+  <h2><svg class="ic"><use href="#i-chart"/></svg>{{ t('all_benches') }}</h2>
+  <div class="scroll">
+  <table class="matrix">
+    <tr><th>{{ t('bench') }}</th>{% for s in steps %}<th title="{{ L.step_name(s, lang) }}">{{ s.code }}<small>{{ L.discipline(s.discipline, lang) }}</small></th>{% endfor %}<th>{{ t('progress') }}</th></tr>
+    {% for b in benches %}
+    <tr>
+      <td><a href="/pruefstand/{{ b.code }}"><b>{{ b.code }}</b></a><small>{{ b.name }}</small></td>
+      {% for task in b.tasks %}<td><a class="cell st-{{ task.status|lower }}" href="/aufgabe/{{ task.id }}" title="{{ L.step_name(task.step, lang) }}: {{ L.status(task.status, lang) }}">{{ L.status_short(task.status, lang) }}</a></td>{% endfor %}
+      <td><progress max="100" value="{{ progress(b) }}"></progress> {{ progress(b) }}%{% if b.released_at %} <span class="chip st-pass">{{ t('released') }}</span>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  <p class="legend">{% for s in ['WAITING','READY','IN_PROGRESS','PASS','FAIL','BLOCKED'] %}<span class="chip st-{{ s|lower }}">{{ L.status_short(s, lang) }} = {{ L.status(s, lang) }}</span>{% endfor %}</p>
+</section>
+
+<div class="grid2">
+  <section class="card">
+    <h2><svg class="ic"><use href="#i-users"/></svg>{{ t('by_team') }}</h2>
+    <table class="tbl">
+      <tr><th>{{ t('team') }}</th><th>{{ L.status('READY', lang) }}</th><th>{{ L.status('IN_PROGRESS', lang) }}</th><th>{{ t('kpi_problems') }}</th></tr>
+      {% for d, c in per_discipline.items() %}
+      <tr><td><a href="/team?d={{ d }}">{{ L.discipline(d, lang) }}</a></td><td>{{ c['READY'] }}</td><td>{{ c['IN_PROGRESS'] }}</td><td class="{{ 'bad-t' if c['FAIL'] + c['BLOCKED'] }}">{{ c['FAIL'] + c['BLOCKED'] }}</td></tr>
+      {% endfor %}
+    </table>
+  </section>
+  <section class="card">
+    <h2><svg class="ic"><use href="#i-file"/></svg>{{ t('new_bench') }}</h2>
+    <form method="post" action="/pruefstaende" class="stack">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label>{{ t('bench_code') }}<input name="code" required maxlength="20" pattern="[A-Za-z0-9_\-]+" placeholder="PS-30"></label>
+      <label>{{ t('bench_name') }}<input name="name" required maxlength="120"></label>
+      <label>{{ t('bench_location') }}<input name="location" maxlength="80"></label>
+      <button class="btn primary">{{ t('create_bench') }}</button>
+    </form>
+    <h2><svg class="ic"><use href="#i-clock"/></svg>{{ t('recent_activity') }}</h2>
+    <ul class="people">{% for a in activity %}<li><span>{{ L.audit_text(a, lang) }}</span><span class="muted">{{ a.at|local }}</span></li>{% endfor %}</ul>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{{ t('nav_inbox') }}{% endblock %}
+{% block content %}
+<div class="row-between">
+  <h1>{{ t('nav_inbox') }}</h1>
+  <form method="post" action="/meldungen/gelesen"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn">{{ t('mark_all_read') }}</button></form>
+</div>
+<p class="muted">{{ t('inbox_order') }}</p>
+<ul class="inbox">
+  {% for n in items %}
+  <li class="{{ 'read' if n.read_at }} {{ 'resolved' if n.resolved_at }}">
+    <a href="/meldung/{{ n.id }}">
+      <span class="prio p{{ n.priority }}">{{ L.priority(n.priority, lang) }}</span>
+      <span class="msg">{{ L.notification_text(n, lang) }}</span>
+      <span class="when">{{ n.created_at|local }}</span>
+      <span class="go">{% if n.resolved_at %}{{ t('resolved') }}{% else %}{{ L.action_hint(n, lang) }} ›{% endif %}</span>
+    </a>
+  </li>
+  {% else %}
+  <li class="empty-line">{{ t('inbox_empty') }}</li>
+  {% endfor %}
+</ul>
+{% endblock %}

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{% block title %}{{ t('app_name') }}{% endblock %} · {{ t('app_name') }}</title>
+<link rel="stylesheet" href="/static/app.css">
+<script src="/static/app.js" defer></script>
+</head>
+<body{% if autorefresh %} data-autorefresh="1"{% endif %}>
+<svg class="sprite" aria-hidden="true">
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="5.6" y1="5.6" x2="18.4" y2="18.4"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><line x1="6" y1="20" x2="6" y2="12"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="9"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18 14a6 6 0 0 1 3.5 6"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="14 3 14 9 20 9"/></symbol>
+</svg>
+
+{% if demo %}<div class="demo-banner">{{ t('demo_banner') }}</div>{% endif %}
+
+{% if user %}
+<header class="top">
+  <a class="brand" href="/">{{ t('app_name') }}</a>
+  <nav class="nav">
+    {% if user.role == 'ADMIN' %}
+      <a href="/leitung" class="{{ 'on' if path == '/leitung' }}"><svg class="ic"><use href="#i-chart"/></svg>{{ t('nav_overview') }}</a>
+      <a href="/team" class="{{ 'on' if path == '/team' }}"><svg class="ic"><use href="#i-users"/></svg>{{ t('nav_teams') }}</a>
+      <a href="/regeln" class="{{ 'on' if path == '/regeln' }}"><svg class="ic"><use href="#i-gear"/></svg>{{ t('nav_rules') }}</a>
+      <a href="/benutzer" class="{{ 'on' if path == '/benutzer' }}"><svg class="ic"><use href="#i-users"/></svg>{{ t('nav_users') }}</a>
+      <a href="/protokoll" class="{{ 'on' if path == '/protokoll' }}"><svg class="ic"><use href="#i-file"/></svg>{{ t('nav_audit') }}</a>
+    {% elif user.role == 'LEAD' %}
+      <a href="/team" class="{{ 'on' if path == '/team' }}"><svg class="ic"><use href="#i-users"/></svg>{{ t('nav_my_team') }}</a>
+      <a href="/aufgaben" class="{{ 'on' if path == '/aufgaben' }}"><svg class="ic"><use href="#i-list"/></svg>{{ t('nav_my_tasks') }}</a>
+    {% else %}
+      <a href="/aufgaben" class="{{ 'on' if path == '/aufgaben' }}"><svg class="ic"><use href="#i-list"/></svg>{{ t('nav_my_tasks') }}</a>
+    {% endif %}
+    <a href="/meldungen" class="bell {{ 'on' if path == '/meldungen' }}"><svg class="ic"><use href="#i-bell"/></svg>{{ t('nav_inbox') }}<span id="badge" class="badge"{% if not badge %} hidden{% endif %}>{{ badge }}</span></a>
+  </nav>
+  <div class="me">
+    <span class="who">{{ user.full_name }} · {{ L.role(user.role, lang) }}{% if user.discipline %} · {{ L.discipline(user.discipline, lang) }}{% endif %}</span>
+    <form method="post" action="/sprache"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="{{ path }}"><button class="link">{{ 'English' if lang == 'de' else 'Deutsch' }}</button></form>
+    <form method="post" action="/logout"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="link">{{ t('logout') }}</button></form>
+  </div>
+</header>
+{% if has_high and path != '/meldungen' %}
+<a class="urgent-bar" href="/meldungen"><svg class="ic"><use href="#i-bell"/></svg>{{ t('urgent_bar') }}</a>
+{% endif %}
+{% endif %}
+
+<main class="wrap">
+  {% if ok %}{% set msg = t(ok) %}{% if msg != ok %}<div class="flash ok" role="status"><svg class="ic"><use href="#i-check"/></svg>{{ msg }}</div>{% endif %}{% endif %}
+  {% if err %}{% set msg = t(err) %}{% if msg != err %}<div class="flash err" role="alert"><svg class="ic"><use href="#i-x"/></svg>{{ msg }}</div>{% endif %}{% endif %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

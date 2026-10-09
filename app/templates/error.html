@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ code }}{% endblock %}
+{% block content %}
+<div class="empty">
+  <svg class="ic huge"><use href="#i-stop"/></svg>
+  <h1>{{ t('error_' ~ code) if t('error_' ~ code) != 'error_' ~ code else t('error_generic') }}</h1>
+  <p><a class="btn primary" href="/">{{ t('back_home') }}</a></p>
+</div>
+{% endblock %}

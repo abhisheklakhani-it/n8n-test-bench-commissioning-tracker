@@ -1,17 +1,50 @@
+# Production-like local stack: web app + PostgreSQL.  Start:  docker compose up --build
+# Optional n8n automation layer:                         docker compose --profile n8n up --build
 services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: commissioning
+      POSTGRES_USER: commissioning
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-dev-only}   # set a real secret in .env for anything but localhost
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U commissioning -d commissioning"]
+      interval: 5s
+      retries: 10
+    # no published port: the database is only reachable from the app container
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    environment:
+      DATABASE_URL: postgresql://commissioning:${POSTGRES_PASSWORD:-local-dev-only}@db:5432/commissioning
+      DEMO_MODE: ${DEMO_MODE:-1}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-Demo-Pruefstand-2026!}
+      COOKIE_SECURE: ${COOKIE_SECURE:-0}   # 1 behind HTTPS
+      APP_TIMEZONE: Europe/Berlin
+
   n8n:
+    profiles: ["n8n"]
     image: docker.n8n.io/n8nio/n8n:latest
-    container_name: n8n-commissioning-tracker
     restart: unless-stopped
     ports:
       - "5678:5678"
     environment:
-      - GENERIC_TIMEZONE=Europe/Berlin
-      - TZ=Europe/Berlin
-      - N8N_SECURE_COOKIE=false
+      GENERIC_TIMEZONE: Europe/Berlin
+      TZ: Europe/Berlin
+      N8N_SECURE_COOKIE: "false"
     volumes:
       - n8n_data:/home/node/.n8n
-      - ./workflows:/workflows:ro
+      - ./n8n/workflows:/workflows:ro
 
 volumes:
+  db_data:
   n8n_data:

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ t('nav_my_tasks') }}{% endblock %}
+{% macro card(task, kind) %}
+<a class="task-card {{ kind }}" href="/aufgabe/{{ task.id }}">
+  <span class="tc-bench">{{ task.bench.code }}</span>
+  <span class="tc-step">{{ L.step_name(task.step, lang) }}</span>
+  <span class="tc-meta">{{ task.bench.name }}{% if task.bench.location %} · {{ task.bench.location }}{% endif %}</span>
+  {% if kind == 'problem' and task.comment %}<span class="tc-note">“{{ task.comment }}”</span>{% endif %}
+  <span class="tc-go">
+    {% if kind == 'ready' %}<svg class="ic"><use href="#i-play"/></svg>{{ t('open_and_start') }}
+    {% elif kind == 'doing' %}<svg class="ic"><use href="#i-check"/></svg>{{ t('report_result') }}
+    {% else %}<svg class="ic"><use href="#i-x"/></svg>{{ t('solve_problem') }}{% endif %}
+  </span>
+</a>
+{% endmacro %}
+{% block content %}
+<h1>{{ t('hello', name=user.full_name.split(' ')[0]) }}</h1>
+
+{% if groups.problem %}
+<section><h2 class="h-problem"><svg class="ic"><use href="#i-x"/></svg>{{ t('group_problem') }}</h2>
+<div class="cards">{% for task in groups.problem %}{{ card(task, 'problem') }}{% endfor %}</div></section>
+{% endif %}
+
+{% if groups.doing %}
+<section><h2 class="h-doing"><svg class="ic"><use href="#i-clock"/></svg>{{ t('group_doing') }}</h2>
+<div class="cards">{% for task in groups.doing %}{{ card(task, 'doing') }}{% endfor %}</div></section>
+{% endif %}
+
+{% if groups.ready %}
+<section><h2 class="h-ready"><svg class="ic"><use href="#i-play"/></svg>{{ t('group_ready') }}</h2>
+<div class="cards">{% for task in groups.ready %}{{ card(task, 'ready') }}{% endfor %}</div></section>
+{% endif %}
+
+{% if not groups.problem and not groups.doing and not groups.ready %}
+<div class="empty">
+  <svg class="ic huge ok-c"><use href="#i-check"/></svg>
+  <h2>{{ t('all_done') }}</h2>
+  <p>{{ t('all_done_hint') }}</p>
+  {% if upcoming %}<p class="muted">{{ t('upcoming', n=upcoming) }}</p>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ t('login_title') }}{% endblock %}
+{% block content %}
+<div class="login">
+  <h1>{{ t('app_name') }}</h1>
+  <p class="muted">{{ t('login_intro') }}</p>
+  {% if error %}<div class="flash err" role="alert">{{ t(error) }}</div>{% endif %}
+  <form method="post" action="/login" class="card stack">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>{{ t('username') }}<input id="username" name="username" autocomplete="username" required maxlength="80" autofocus></label>
+    <label>{{ t('password') }}<input id="password" name="password" type="password" autocomplete="current-password" required maxlength="200"></label>
+    <button class="btn primary big">{{ t('login_button') }}</button>
+  </form>
+  {% if demo and demo_password %}
+  <div class="card demo-box">
+    <h2>{{ t('demo_accounts') }}</h2>
+    <p class="muted">{{ t('demo_accounts_hint') }} <code>{{ demo_password }}</code></p>
+    <div class="demo-list">
+      {% for username, name, role, disc in demo_accounts %}
+      <button type="button" class="demo-user" data-username="{{ username }}" data-password="{{ demo_password }}">
+        <b>{{ L.role(role, lang) }}{% if disc %} · {{ L.discipline(disc, lang) }}{% endif %}</b><span>{{ username }}</span>
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

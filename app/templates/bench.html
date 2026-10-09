@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ t('bench') }} {{ bench.code }}{% endblock %}
+{% block content %}
+<div class="task-head">
+  <div><h1>{{ t('bench') }} {{ bench.code }}</h1><p class="muted">{{ bench.name }}{% if bench.location %} · {{ bench.location }}{% endif %}</p></div>
+  <div class="big-status {{ 'st-pass' if bench.released_at else 'st-in_progress' }}">{{ t('released') if bench.released_at else pct ~ ' %' }}</div>
+</div>
+<progress class="wide" max="100" value="{{ pct }}"></progress>
+<ol class="steps">
+  {% for task in bench.tasks %}
+  <li class="st-{{ task.status|lower }}">
+    <a href="/aufgabe/{{ task.id }}">
+      <span class="num">{{ task.step_code }}</span>
+      <span class="name">{{ L.step_name(task.step, lang) }}<small>{{ L.discipline(task.discipline, lang) }} · {{ task.assignee.full_name if task.assignee else t('nobody_yet') }}</small></span>
+      <span class="chip st-{{ task.status|lower }}">{{ L.status(task.status, lang) }}</span>
+    </a>
+  </li>
+  {% endfor %}
+</ol>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}{{ task.bench.code }} · {{ task.step_code }}{% endblock %}
+{% macro chip(t_) %}<span class="chip st-{{ t_.status|lower }}">{{ L.status(t_.status, lang) }}</span>{% endmacro %}
+{% block content %}
+<p class="crumbs"><a href="/pruefstand/{{ task.bench.code }}">{{ t('bench') }} {{ task.bench.code }}</a> › {{ task.step_code }}</p>
+<div class="task-head">
+  <div>
+    <h1>{{ L.step_name(task.step, lang) }}</h1>
+    <p class="muted">{{ task.bench.code }} · {{ task.bench.name }}{% if task.bench.location %} · {{ task.bench.location }}{% endif %} · {{ L.discipline(task.discipline, lang) }}</p>
+  </div>
+  <div class="big-status st-{{ task.status|lower }}">{{ L.status(task.status, lang) }}</div>
+</div>
+
+<div class="grid2">
+  <section class="card">
+    <h2>{{ t('what_to_do') }}</h2>
+    <p class="lead">{{ L.step_instructions(task.step, lang) }}</p>
+    <div class="flow">
+      <div><span class="muted">{{ t('before') }}</span>{% for b in before %}<a href="/aufgabe/{{ b.id }}">{{ b.step_code }} {{ chip(b) }}</a>{% else %}<span class="muted">{{ t('none') }}</span>{% endfor %}</div>
+      <div class="flow-this">{{ task.step_code }}</div>
+      <div><span class="muted">{{ t('after') }}</span>{% for a in after %}<a href="/aufgabe/{{ a.id }}">{{ a.step_code }} {{ chip(a) }}</a>{% else %}<span class="muted">{{ t('release') }}</span>{% endfor %}</div>
+    </div>
+    <dl class="facts">
+      <dt>{{ t('assignee') }}</dt><dd>{{ task.assignee.full_name if task.assignee else t('nobody_yet') }}</dd>
+      <dt>{{ t('ready_since') }}</dt><dd>{{ task.ready_at|local }}</dd>
+      <dt>{{ t('started') }}</dt><dd>{{ task.started_at|local }}</dd>
+      <dt>{{ t('finished') }}</dt><dd>{{ task.finished_at|local }}</dd>
+    </dl>
+    {% if task.comment %}<div class="note {{ 'bad' if task.status in ('FAIL','BLOCKED') }}"><b>{{ t('comment') }}:</b> {{ task.comment }}</div>{% endif %}
+    {% if task.measurement %}<p><b>{{ t('measurement') }}:</b> {{ task.measurement }}</p>{% endif %}
+  </section>
+
+  <section class="card">
+  {% if task.status == 'WAITING' %}
+    <div class="empty small"><svg class="ic huge"><use href="#i-clock"/></svg><h2>{{ t('waiting_title') }}</h2><p>{{ t('waiting_hint') }}</p></div>
+  {% elif task.status == 'PASS' %}
+    <div class="empty small"><svg class="ic huge ok-c"><use href="#i-check"/></svg><h2>{{ t('done_title') }}</h2>
+      <ul class="checklist done">{% for item in L.checklist(task.step, lang) %}<li><svg class="ic"><use href="#i-check"/></svg>{{ item }}</li>{% endfor %}</ul></div>
+    {% if may_reopen %}
+    <form method="post" action="/aufgabe/{{ task.id }}/wiedereroeffnen" data-confirm="{{ t('confirm_reopen') }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn">{{ t('reopen') }}</button></form>
+    {% endif %}
+  {% elif may_work %}
+    {% if task.status == 'READY' %}
+    <form method="post" action="/aufgabe/{{ task.id }}/start" class="mb">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="btn primary big"><svg class="ic"><use href="#i-play"/></svg>{{ t('start_now') }}</button>
+    </form>
+    {% endif %}
+    <form method="post" action="/aufgabe/{{ task.id }}/ergebnis" class="result-form stack">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <h2>{{ t('checklist') }}</h2>
+      <div class="checklist">
+        {% for item in L.checklist(task.step, lang) %}
+        <label class="check"><input type="checkbox" name="check" value="{{ loop.index0 }}"{% if loop.index0 in task.checklist_done %} checked{% endif %}><span>{{ item }}</span></label>
+        {% endfor %}
+      </div>
+      <label>{{ t('measurement_optional') }}<input name="measurement" maxlength="200" value="{{ task.measurement }}"></label>
+      <label>{{ t('comment_label') }}<textarea name="comment" rows="3" maxlength="2000">{{ task.comment if task.status in ('FAIL','BLOCKED') else '' }}</textarea></label>
+      <p class="muted small" id="pass-hint">{{ t('pass_hint') }}</p>
+      <div class="result-buttons">
+        <button class="btn ok big" name="result" value="PASS" id="pass-btn"><svg class="ic"><use href="#i-check"/></svg>{{ t('result_pass') }}</button>
+        <button class="btn bad big" name="result" value="FAIL"><svg class="ic"><use href="#i-x"/></svg>{{ t('result_fail') }}</button>
+        <button class="btn warn big" name="result" value="BLOCKED"><svg class="ic"><use href="#i-stop"/></svg>{{ t('result_blocked') }}</button>
+      </div>
+    </form>
+  {% else %}
+    <div class="empty small"><svg class="ic huge"><use href="#i-users"/></svg><h2>{{ L.status(task.status, lang) }}</h2><p>{{ t('not_your_task') }}</p></div>
+  {% endif %}
+
+  {% if may_assign and task.status != 'PASS' %}
+    <form method="post" action="/aufgabe/{{ task.id }}/zuweisen" class="assign">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label>{{ t('assign_to') }}
+        <select name="assignee">
+          <option value="">{{ t('nobody_team') }}</option>
+          {% for m in team %}<option value="{{ m.id }}"{% if task.assignee_id == m.id %} selected{% endif %}>{{ m.full_name }}</option>{% endfor %}
+        </select>
+      </label>
+      <button class="btn">{{ t('assign') }}</button>
+    </form>
+  {% endif %}
+  </section>
+</div>
+{% endblock %}

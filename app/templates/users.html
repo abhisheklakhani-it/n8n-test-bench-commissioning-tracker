@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ t('nav_users') }}{% endblock %}
+{% block content %}
+<h1>{{ t('nav_users') }}</h1>
+{% if temp_password %}
+<div class="flash ok" role="status">{{ t('temp_password_for', name=temp_for) }} <code>{{ temp_password }}</code> – {{ t('temp_password_hint') }}</div>
+{% endif %}
+<div class="grid2">
+  <section class="card">
+    <table class="tbl">
+      <tr><th>{{ t('name') }}</th><th>{{ t('username') }}</th><th>{{ t('role') }}</th><th>{{ t('team') }}</th><th></th></tr>
+      {% for u in users %}
+      <tr class="{{ 'muted' if not u.active }}">
+        <td>{{ u.full_name }}</td><td><code>{{ u.username }}</code></td><td>{{ L.role(u.role, lang) }}</td>
+        <td>{{ L.discipline(u.discipline, lang) if u.discipline else '–' }}</td>
+        <td class="actions">
+          {% if u.id != user.id %}
+          <form method="post" action="/benutzer/{{ u.id }}/aktiv" data-confirm="{{ t('confirm_toggle_user') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn small">{{ t('deactivate') if u.active else t('activate') }}</button></form>
+          <form method="post" action="/benutzer/{{ u.id }}/passwort" data-confirm="{{ t('confirm_reset_pw') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn small">{{ t('reset_password') }}</button></form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </section>
+  <section class="card">
+    <h2>{{ t('new_user') }}</h2>
+    <form method="post" action="/benutzer" class="stack">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label>{{ t('name') }}<input name="full_name" required maxlength="120"></label>
+      <label>{{ t('username') }}<input name="username" required maxlength="40" pattern="[a-z0-9._\-]{3,40}" placeholder="vorname.nachname"></label>
+      <label>{{ t('role') }}<select name="role">{% for r in roles %}<option value="{{ r }}"{% if r == 'TECH' %} selected{% endif %}>{{ L.role(r, lang) }}</option>{% endfor %}</select></label>
+      <label>{{ t('team') }}<select name="discipline"><option value="">–</option>{% for d in disciplines %}<option value="{{ d }}">{{ L.discipline(d, lang) }}</option>{% endfor %}</select></label>
+      <label>{{ t('initial_password') }}<input name="password" type="password" required minlength="12" maxlength="200" autocomplete="new-password"></label>
+      <p class="muted small">{{ t('pw_rules') }}</p>
+      <button class="btn primary">{{ t('create_user') }}</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

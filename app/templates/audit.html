@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ t('nav_audit') }}{% endblock %}
+{% block content %}
+<h1>{{ t('nav_audit') }}</h1>
+<p class="muted">{{ t('audit_hint') }}</p>
+<section class="card scroll">
+  <table class="tbl">
+    <tr><th>{{ t('time') }}</th><th>{{ t('name') }}</th><th>{{ t('action') }}</th></tr>
+    {% for a in rows %}<tr><td>{{ a.at|local('%d.%m.%Y %H:%M:%S') }}</td><td>{{ a.user.full_name if a.user else t('system') }}</td><td>{{ L.audit_text(a, lang) }}</td></tr>{% endfor %}
+  </table>
+</section>
+{% endblock %}

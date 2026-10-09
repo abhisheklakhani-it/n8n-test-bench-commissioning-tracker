@@ -1,0 +1,19 @@
+# One-click public demo on Render (free plan). Fictional data only.
+# The free plan has no persistent disk: the demo resets to the seed data on every restart.
+services:
+  - type: web
+    name: test-bench-commissioning
+    runtime: docker
+    plan: free
+    region: frankfurt
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: DEMO_MODE
+        value: "1"
+      - key: COOKIE_SECURE
+        value: "1"
+      - key: FORWARDED_ALLOW_IPS
+        value: "*"
+      - key: DATABASE_URL
+        value: sqlite:///./data/app.db
