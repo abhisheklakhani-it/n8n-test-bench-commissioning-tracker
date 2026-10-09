@@ -27,3 +27,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker build -t test-bench-commissioning .
+      - name: Smoke test with the same settings as Render
+        run: |
+          docker run -d --name smoke -e PORT=10000 -e FORWARDED_ALLOW_IPS='*' -e COOKIE_SECURE=1 -p 10000:10000 test-bench-commissioning
+          for i in $(seq 1 30); do curl -fs localhost:10000/healthz && exit 0; sleep 2; done
+          docker logs smoke; exit 1

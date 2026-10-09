@@ -15,4 +15,5 @@ ENV DATABASE_URL=sqlite:///./data/app.db PORT=8000 FORWARDED_ALLOW_IPS=127.0.0.1
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD python -c "import os,urllib.request; urllib.request.urlopen(f'http://127.0.0.1:{os.environ.get(\"PORT\",\"8000\")}/healthz', timeout=4)"
-CMD ["sh", "-c", "exec uvicorn app.asgi:app --host 0.0.0.0 --port ${PORT} --proxy-headers --forwarded-allow-ips ${FORWARDED_ALLOW_IPS} --no-server-header"]
+# variables are quoted: FORWARDED_ALLOW_IPS="*" (Render) must not be expanded by the shell
+CMD ["sh", "-c", "exec uvicorn app.asgi:app --host 0.0.0.0 --port \"$PORT\" --proxy-headers --forwarded-allow-ips \"$FORWARDED_ALLOW_IPS\" --no-server-header"]
