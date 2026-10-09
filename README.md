@@ -23,6 +23,7 @@ The repository also contains the earlier **n8n prototype** of the same idea ([`n
 - [Time tracking and process KPIs](#time-tracking-and-process-kpis)
 - [Private process analysis (value stream analysis)](#private-process-analysis-value-stream-analysis)
 - [Screenshots](#screenshots)
+- [Design](#design)
 - [Architecture](#architecture)
 - [Security](#security)
 - [Quality](#quality)
@@ -201,6 +202,12 @@ A separate account with the role **Prozessanalyse** opens a workbook for the the
 | Team dashboard (team lead) | My tasks · task form · inbox (phone) |
 |---|---|
 | ![Team dashboard](docs/images/app-team-dashboard.png) | ![Mobile](docs/images/app-mobile.png) |
+
+## Design
+
+The interface follows the principles of Apple's Human Interface Guidelines: the system font, a calm light background with white grouped cards, a translucent sticky top bar, pill-shaped buttons, segmented controls and clear typographic hierarchy. Colours are Apple's system colours in their **accessible high-contrast variants** (text contrast ≥ 4.5:1); status is always shown as **colour + word**. **Dark mode** follows the device setting. Touch targets are at least 44 px (shop floor: 68–84 px), motion respects *reduce motion*.
+
+Every page is checked automatically for horizontal overflow and overlapping elements at 375, 430, 768, 820, 1024, 1180, 1440 and 1789 px in light and dark mode (all roles, ~600 page views); on phones only wide data tables scroll inside their card.
 
 ## Architecture
 

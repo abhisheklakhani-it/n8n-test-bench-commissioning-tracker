@@ -53,9 +53,9 @@
       <a href="/aufgaben" class="{{ 'on' if path == '/aufgaben' }}"><svg class="ic"><use href="#i-list"/></svg>{{ t('nav_my_tasks') }}</a>
       <a href="/werker/aufgabe"><svg class="ic"><use href="#i-play"/></svg>{{ t('nav_shop') }}</a>
     {% endif %}
-    <a href="/meldungen" class="bell {{ 'on' if path == '/meldungen' }}"><svg class="ic"><use href="#i-bell"/></svg>{{ t('nav_inbox') }}<span id="badge" class="badge"{% if not badge %} hidden{% endif %}>{{ badge }}</span></a>
   </nav>
   <div class="me">
+    <a href="/meldungen" class="bell {{ 'on' if path == '/meldungen' }}" aria-label="{{ t('nav_inbox') }}"><svg class="ic"><use href="#i-bell"/></svg><span class="bell-label">{{ t('nav_inbox') }}</span><span id="badge" class="badge"{% if not badge %} hidden{% endif %}>{{ badge }}</span></a>
     <span class="who">{{ user.full_name }} · {{ L.role(user.role, lang) }}{% if user.discipline %} · {{ L.discipline(user.discipline, lang) }}{% endif %}</span>
     <form method="post" action="/sprache"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="{{ path }}"><button class="link">{{ 'English' if lang == 'de' else 'Deutsch' }}</button></form>
     <form method="post" action="/logout"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="link">{{ t('logout') }}</button></form>

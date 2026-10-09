@@ -5,26 +5,28 @@
 {% if temp_password %}
 <div class="flash ok" role="status">{{ t('temp_password_for', name=temp_for) }} <code>{{ temp_password }}</code> – {{ t('temp_password_hint') }}</div>
 {% endif %}
-<div class="grid2">
-  <section class="card">
-    <table class="tbl">
-      <tr><th>{{ t('name') }}</th><th>{{ t('username') }}</th><th>{{ t('role') }}</th><th>{{ t('team') }}</th><th></th></tr>
+<div class="layout-side">
+  <section class="card list-card">
+    <ul class="user-list">
       {% for u in users %}
-      <tr class="{{ 'muted' if not u.active }}">
-        <td>{{ u.full_name }}</td><td><code>{{ u.username }}</code></td><td>{{ L.role(u.role, lang) }}</td>
-        <td>{{ L.discipline(u.discipline, lang) if u.discipline else '–' }}</td>
-        <td class="actions">
+      <li class="user-row{{ ' inactive' if not u.active }}">
+        <span class="avatar small" aria-hidden="true">{{ u.full_name.split(' ')[0][:1] }}{{ u.full_name.split(' ')[-1][:1] }}</span>
+        <div class="user-main">
+          <b>{{ u.full_name }}{% if not u.active %} <span class="chip">{{ t('inactive') }}</span>{% endif %}</b>
+          <span class="muted small"><code>{{ u.username }}</code> · {{ L.role(u.role, lang) }}{% if u.discipline %} · {{ L.discipline(u.discipline, lang) }}{% endif %}</span>
+        </div>
+        <div class="user-actions">
           {% if u.id != user.id %}
           <form method="post" action="/benutzer/{{ u.id }}/aktiv" data-confirm="{{ t('confirm_toggle_user') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn small">{{ t('deactivate') if u.active else t('activate') }}</button></form>
           <form method="post" action="/benutzer/{{ u.id }}/passwort" data-confirm="{{ t('confirm_reset_pw') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn small">{{ t('reset_password') }}</button></form>
           {% if u.role == 'TECH' %}
-          <form method="post" action="/benutzer/{{ u.id }}/pin" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input name="pin" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" placeholder="PIN" aria-label="PIN" class="pin-small" required><button class="btn small">{{ t('set_pin') }}</button></form>
+          <form method="post" action="/benutzer/{{ u.id }}/pin" class="pin-set"><input type="hidden" name="csrf" value="{{ csrf }}"><input name="pin" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" placeholder="PIN" aria-label="PIN" class="pin-small" required><button class="btn small">{{ t('set_pin') }}</button></form>
           {% endif %}
           {% endif %}
-        </td>
-      </tr>
+        </div>
+      </li>
       {% endfor %}
-    </table>
+    </ul>
   </section>
   <section class="card">
     <h2>{{ t('new_user') }}</h2>
