@@ -292,3 +292,7 @@ details.problem[open] { display: flex; flex-direction: column; gap: .8rem; }
   .job-bench { font-size: 2.1rem; }
   .result-buttons.two { grid-template-columns: 1fr; }
 }
+.m-row input.m-text { width: 100%; max-width: 22rem; text-align: left; font-size: 1.3rem; }
+.answer-row { border: 2px solid var(--line); border-radius: 12px; padding: .7rem .9rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .6rem; margin: 0; }
+.answer-row legend { font-weight: 700; padding: 0 .3rem; }
+.preview .job { border-width: 2px; border-top-width: 10px; }

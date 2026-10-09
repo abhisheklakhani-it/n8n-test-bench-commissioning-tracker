@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ t('nav_steps') }}{% endblock %}
+{% block content %}
+<h1>{{ t('steps_title') }}</h1>
+<p class="muted">{{ t('steps_intro') }}</p>
+<ol class="steps">
+  {% for s, editable in rows %}
+  <li class="{{ 'st-ready' if editable else 'st-waiting' }}">
+    <a href="/schritte/{{ s.code }}">
+      <span class="num">{{ s.code }}</span>
+      <span class="name">{{ L.step_name(s, lang) }}<small>{{ L.discipline(s.discipline, lang) }} · {{ t('version') }} {{ s.version }} · {{ t('checklist_items', n=s.checklist_de|length) }} · {{ t('answers_count', n=s.measurements|length) }}</small></span>
+      <span class="chip {{ 'st-ready' if editable else '' }}">{{ t('edit') if editable else t('read_only') }}</span>
+    </a>
+  </li>
+  {% endfor %}
+</ol>
+{% endblock %}

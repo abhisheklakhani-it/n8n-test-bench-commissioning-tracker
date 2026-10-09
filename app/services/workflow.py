@@ -90,6 +90,7 @@ def start_task(db: Session, actor: User, task: Task) -> None:
         raise WorkflowError("err_wrong_state")
     task.status = P.IN_PROGRESS
     task.started_at = utcnow()
+    task.spec_snapshot = task.step.to_spec()  # later edits of the step do not change running work
     if task.assignee_id is None:
         task.assignee_id = actor.id
     notify.resolve_for_task(db, task.id, (N.TASK_READY, N.TASK_ASSIGNED, N.TASK_OVERDUE))
@@ -106,13 +107,16 @@ def submit_result(
     if task.status not in (P.READY, P.IN_PROGRESS, P.FAIL, P.BLOCKED):
         raise WorkflowError("err_wrong_state")
     comment = comment.strip()[:2000]
-    checklist_len = len(task.step.checklist_de)
+    if task.spec_snapshot is None:
+        task.spec_snapshot = task.step.to_spec()
+    spec = task.spec
+    checklist_len = len(spec.checklist_de)
     checked = sorted({i for i in checked if 0 <= i < checklist_len})
     if result == P.PASS and len(checked) != checklist_len:
         raise WorkflowError("err_checklist")
     if result in (P.FAIL, P.BLOCKED) and not comment:
         raise WorkflowError("err_comment_required")
-    values, out_of_range, invalid = P.check_values(task.step.measurements or [], values_raw or {})
+    values, out_of_range, invalid = P.check_values(spec.measurements or [], values_raw or {})
     if result == P.PASS and invalid:
         raise WorkflowError("err_values_missing")
     if result == P.PASS and out_of_range:  # Poka-Yoke: a value outside the tolerance can never be "done"

@@ -28,7 +28,7 @@
       <span class="big-status st-{{ task.status|lower }}">{{ L.status(task.status, lang) }}</span>
     </div>
     <h1 class="job-step">{{ L.step_name(task.step, lang) }}</h1>
-    <p class="job-todo">{{ L.step_instructions(task.step, lang) }}</p>
+    <p class="job-todo">{{ L.step_instructions(task.spec, lang) }}</p>
     {% if task.comment and task.status in ('FAIL', 'BLOCKED') %}<div class="note bad">“{{ task.comment }}”</div>{% endif %}
 
     {% if task.status == 'READY' %}
@@ -53,21 +53,11 @@
       <form method="post" action="/werker/aufgabe/{{ task.id }}/ergebnis" class="result-form shop-form">
         <input type="hidden" name="csrf" value="{{ csrf }}">
         <div class="checklist">
-          {% for item in L.checklist(task.step, lang) %}
+          {% for item in L.checklist(task.spec, lang) %}
           <label class="check big"><input type="checkbox" name="check" value="{{ loop.index0 }}"{% if loop.index0 in task.checklist_done %} checked{% endif %}><span>{{ item }}</span></label>
           {% endfor %}
         </div>
-        {% for m in task.step.measurements %}
-        <label class="measure" data-min="{{ m.min }}" data-max="{{ m.max }}">
-          <span class="m-label">{{ m.label_en if lang == 'en' else m.label_de }}</span>
-          <span class="m-row">
-            <input name="v_{{ m.key }}" inputmode="decimal" autocomplete="off" maxlength="12" value="{{ task.values.get(m.key, '') if task.values else '' }}">
-            <b class="m-unit">{{ m.unit }}</b>
-            <span class="m-state" aria-live="polite"></span>
-          </span>
-          <span class="m-range">{{ t('allowed') }}: {{ m.min }} … {{ m.max }} {{ m.unit }}</span>
-        </label>
-        {% endfor %}
+        {% with spec=task.spec, values=task.values, readonly=False %}{% include '_answers.html' %}{% endwith %}
         <p class="muted" id="pass-hint">{{ t('shop_pass_hint') }}</p>
         <button class="btn ok giant" name="result" value="PASS" id="pass-btn"><svg class="ic"><use href="#i-check"/></svg>{{ t('shop_done') }}</button>
         <details class="problem">

@@ -120,7 +120,7 @@ def test_open_tasks_for_worker_only_own_discipline(db):
 def test_demo_steps_have_valid_tolerances(db):
     for step in db.scalars(select(StepTemplate)):
         for d in step.measurements:
-            assert d["min"] < d["max"] and d["unit"]
+            assert d.get("kind") == "text" or (d["min"] < d["max"] and d["unit"])
         _, out, invalid = P.check_values(step.measurements, good_values(step))
         assert out == [] and invalid == []
 

@@ -6,7 +6,7 @@ The repository also contains the earlier **n8n prototype** of the same idea ([`n
 
 ![CI](https://github.com/abhisheklakhani-it/n8n-test-bench-commissioning-tracker/actions/workflows/ci.yml/badge.svg)
 
-![Demo: a notification opens the task, the technician ticks the checklist, the next team is notified and the dashboard updates](docs/images/app-demo.gif)
+![Demo on the tablet: tap your name, enter the PIN, start the task, tick the checklist, a value out of range locks "Done", the correct value turns green, the next worker immediately has the next step, the team lead edits what workers see](docs/images/shopfloor-demo.gif)
 
 > **Live demo:** https://test-bench-commissioning.onrender.com (click a role on the login page). All names, test benches and results in the demo are **fictional**.
 
@@ -19,6 +19,7 @@ The repository also contains the earlier **n8n prototype** of the same idea ([`n
 - [Roles and screens](#roles-and-screens)
 - [How notifications work](#how-notifications-work)
 - [Shop-floor mode for technicians](#shop-floor-mode-for-technicians)
+- [Team leads define what workers see and answer](#team-leads-define-what-workers-see-and-answer)
 - [Time tracking and process KPIs](#time-tracking-and-process-kpis)
 - [Private process analysis (value stream analysis)](#private-process-analysis-value-stream-analysis)
 - [Screenshots](#screenshots)
@@ -27,6 +28,7 @@ The repository also contains the earlier **n8n prototype** of the same idea ([`n
 - [Quality](#quality)
 - [Getting started](#getting-started)
 - [Live demo and deployment](#live-demo-and-deployment)
+- [Running inside a company and integration](#running-inside-a-company-and-integration)
 - [Roadmap](#roadmap)
 - [Author](#author)
 
@@ -64,7 +66,7 @@ Commissioning a test bench is a chain of steps done by different teams: mechanic
 | Role | Lands on | Can |
 |---|---|---|
 | **Department lead** (Leitung) | **Central dashboard** | See all test benches as a matrix with progress and release status, KPIs (in commissioning, released, problems, overdue, average lead time), problems, workload per team; create test benches; **set the notification rules**; manage users; read the audit log |
-| **Team lead** (Teamleitung, per discipline) | **Team dashboard** | See problems, ready, running and upcoming steps of the own discipline; **assign** steps to team members (workload is shown); reopen a step |
+| **Team lead** (Teamleitung, per discipline) | **Team dashboard** | See problems, ready, running and upcoming steps of the own discipline; **assign** steps to team members (workload is shown); reopen a step; **edit what workers see and answer** for the own team's steps |
 | **Technician** (Techniker/in) | **Shop-floor screen** (tablet: tap name + PIN) or *My tasks* | See only the one task that is next, follow the instructions, tick the checklist, enter measured values (checked automatically), report the result, pause, call for help |
 | **Process analysis** (Prozessanalyse) | **Analysis workbook** | Private account of the thesis author: value stream mapping, Gemba notes, PDCA actions, KPIs before/after, target state – with full version history |
 
@@ -144,6 +146,20 @@ Built for people who have never used such software, on a shared tablet at the te
 | ![Tiles](docs/images/shop-tiles.png) | ![PIN](docs/images/shop-pin.png) | ![Out of range](docs/images/shop-task-out-of-range.png) | ![OK](docs/images/shop-task-ok.png) |
 
 Printable QR codes for every test bench (and for the tablet sign-in) are on the *QR codes* page.
+
+## Team leads define what workers see and answer
+
+On the page *Work steps* each team lead maintains the steps of their own team (the department lead can edit all):
+
+- **What to do** – one short instruction (German, optional English).
+- **Checklist** – up to 12 items; the worker ticks each one.
+- **Worker inputs** – the answers the worker must give:
+  - **Number** with unit and allowed range (e.g. *fitting torque 18–22 Nm*) – green/red while typing, *Done* locked outside the range,
+  - **Text**, e.g. *software version* or *serial number* – required before *Done*.
+- A **live preview** shows exactly what the worker will see on the tablet.
+- Every save creates a **new version** with history (who, when). **Running work keeps the version it started with**; only tasks that have not started yet get the new version – a worker's checklist never changes in the middle of the work.
+
+![Step editor with preview](docs/images/step-editor.png)
 
 ## Time tracking and process KPIs
 
@@ -235,11 +251,11 @@ Summary (details in [SECURITY.md](SECURITY.md)):
 
 ```bash
 ruff check app tests        # lint incl. security rules
-pytest -q                   # 126 tests: domain, workflow, shop floor, analysis, web/security, migrations, translations
+pytest -q                   # 136 tests: domain, workflow, shop floor, step editor, analysis, web/security, migrations, translations
 pip-audit -r requirements.txt
 ```
 
-The tests cover measured-value tolerances, pause handling, PIN login with lockout and network restriction, the shop-floor flow, the QR redirect, help requests, the analysis history and its privacy, that the database migrations match the models, parallel steps and joins, who receives which notification (and who does not), priority ordering, rule changes, escalation, the full permission matrix, CSRF, login throttling, access to other people's data, security headers, open redirects and that every text exists in German and English. CI runs lint, tests, the dependency audit and the Docker build on every push.
+The tests cover upgrading a database that already contains data, step versions and snapshots, text answers, measured-value tolerances, pause handling, PIN login with lockout and network restriction, the shop-floor flow, the QR redirect, help requests, the analysis history and its privacy, that the database migrations match the models, parallel steps and joins, who receives which notification (and who does not), priority ordering, rule changes, escalation, the full permission matrix, CSRF, login throttling, access to other people's data, security headers, open redirects and that every text exists in German and English. CI runs lint, tests, the dependency audit and the Docker build on every push.
 
 ## Getting started
 
@@ -300,10 +316,15 @@ All demo accounts use the password `Demo-Pruefstand-2026!` (shown on the login p
 
 **For real use inside a company** the same container runs on internal infrastructure with PostgreSQL, HTTPS via the company reverse proxy, `DEMO_MODE=0`, and ideally single sign-on (Microsoft Entra ID) instead of local passwords. The process steps and notification channels (e.g. Microsoft Teams via the n8n layer or Power Automate) are configuration.
 
+## Running inside a company and integration
+
+The app is a standard container with PostgreSQL and no lock-in to a cloud, so it can run on **Microsoft Azure** (Container Apps / App Service + Azure Database for PostgreSQL + Key Vault), on an **internal Kubernetes/OpenShift** platform or on a **single lab server** behind the company reverse proxy – configuration only, no code change. Planned integrations: **Microsoft Entra ID** single sign-on, **Teams/Outlook** notifications (via the n8n layer or Power Automate), **SharePoint/Microsoft Lists** sync, a **Power BI** reporting view, and a **REST endpoint for test bench software** so measured values arrive without typing. Details, recommended order and what is needed from IT: [docs/INTEGRATION.md](docs/INTEGRATION.md).
+
 ## Roadmap
 
 - [ ] Single sign-on with Microsoft Entra ID (OIDC); local passwords only as fallback
-- [ ] Process editor in the UI (steps, dependencies, checklists per test bench type)
+- [x] Step editor for team leads (instructions, checklist, inputs with tolerances, versions)
+- [ ] Process structure editor (add steps, dependencies, templates per test bench type)
 - [ ] Push channels: Microsoft Teams / e-mail for Urgent messages, daily digest for Info
 - [ ] Attachments (photos, measurement files) per step
 - [ ] Read measured values directly from the test bench (no typing) via the n8n layer or an API

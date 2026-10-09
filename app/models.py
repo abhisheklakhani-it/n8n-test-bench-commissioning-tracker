@@ -61,8 +61,41 @@ class StepTemplate(Base):
     instructions_en: Mapped[str] = mapped_column(Text, default="")
     checklist_de: Mapped[list] = mapped_column(JSON, default=list)
     checklist_en: Mapped[list] = mapped_column(JSON, default=list)
-    # measured values with tolerance: [{"key", "label_de", "label_en", "unit", "min", "max"}]
+    # answers the worker gives besides the checklist:
+    # [{"key", "label_de", "label_en", "kind": "number"|"text", "unit", "min", "max"}]
     measurements: Mapped[list] = mapped_column(JSON, default=list)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    def to_spec(self) -> dict:
+        """What the worker sees and has to answer for this step (copied into a task when it starts)."""
+        return {"version": self.version, "instructions_de": self.instructions_de, "instructions_en": self.instructions_en,
+                "checklist_de": list(self.checklist_de), "checklist_en": list(self.checklist_en), "measurements": list(self.measurements or [])}
+
+
+class StepSpec:
+    """Read-only view of a step specification (live template or a task's snapshot)."""
+
+    def __init__(self, data: dict):
+        self.version = data.get("version", 1)
+        self.instructions_de = data.get("instructions_de", "")
+        self.instructions_en = data.get("instructions_en", "")
+        self.checklist_de = data.get("checklist_de", [])
+        self.checklist_en = data.get("checklist_en", [])
+        self.measurements = data.get("measurements", [])
+
+
+class StepRevision(Base):
+    """Every change a team lead makes to a step is kept (who, when, what)."""
+
+    __tablename__ = "step_revisions"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    step_code: Mapped[str] = mapped_column(ForeignKey("step_templates.code"), index=True)
+    version: Mapped[int] = mapped_column(Integer)
+    data: Mapped[dict] = mapped_column(JSON, default=dict)
+    at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    user: Mapped[User | None] = relationship()
 
 
 class Bench(Base):
@@ -95,11 +128,17 @@ class Task(Base):
     values: Mapped[dict] = mapped_column(JSON, default=dict)  # measured values {key: number}
     paused_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     paused_seconds: Mapped[int] = mapped_column(Integer, default=0)
+    # copy of the step specification taken when the work starts (later edits do not change running work)
+    spec_snapshot: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
     overdue_notified: Mapped[bool] = mapped_column(Boolean, default=False)
     bench: Mapped[Bench] = relationship(back_populates="tasks")
     step: Mapped[StepTemplate] = relationship()
     assignee: Mapped[User | None] = relationship()
+
+    @property
+    def spec(self) -> StepSpec:
+        return StepSpec(self.spec_snapshot if self.spec_snapshot else self.step.to_spec())
 
 
 class NotificationRule(Base):

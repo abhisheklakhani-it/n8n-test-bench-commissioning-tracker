@@ -24,6 +24,7 @@ Die **Glocke** zeigt neue Meldungen. Ein Klick auf eine Meldung öffnet direkt d
 - **Mein Team** zeigt Probleme, startbare Schritte, laufende Arbeit und die Auslastung im Team.
 - Startbare Schritte über **Zuweisen** an eine Person geben.
 - Überfällige Schritte sind markiert.
+- **Arbeitsschritte**: festlegen, was der Werker bei den Schritten des eigenen Teams sieht – Anleitung, Checkliste und Eingaben (Zahl mit erlaubtem Bereich oder Text). Rechts zeigt die Vorschau die Tablet-Ansicht. Jede Änderung wird eine neue Version; laufende Arbeit behält ihre Version.
 
 **Leitung**
 - **Übersicht**: alle Prüfstände, Fortschritt, Probleme, Kennzahlen; neuen Prüfstand anlegen.
@@ -61,6 +62,7 @@ The **bell** shows new notifications. Clicking one opens the matching task direc
 - **My team** shows problems, startable steps, running work and the team's workload.
 - Give startable steps to a person with **Assign**.
 - Overdue steps are highlighted.
+- **Work steps**: define what workers see for the steps of your team – instruction, checklist and inputs (number with allowed range, or text). The preview on the right shows the tablet view. Every change becomes a new version; running work keeps its version.
 
 **Department lead**
 - **Overview**: all test benches, progress, problems, KPIs; create a new test bench.

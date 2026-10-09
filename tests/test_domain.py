@@ -87,8 +87,8 @@ def test_every_event_has_a_default_rule():
 def test_permission_matrix(role, action):
     expected = {
         ADMIN: {"view_central_dashboard", "view_team_dashboard", "view_my_tasks", "work_on_task", "assign_task", "reopen_task",
-                "create_bench", "manage_users", "manage_rules", "view_audit", "view_kpis", "print_qr", "reset_demo"},
-        LEAD: {"view_team_dashboard", "view_my_tasks", "work_on_task", "assign_task", "reopen_task", "view_kpis", "print_qr"},
+                "create_bench", "manage_users", "manage_rules", "view_audit", "view_kpis", "print_qr", "reset_demo", "edit_steps"},
+        LEAD: {"view_team_dashboard", "view_my_tasks", "work_on_task", "assign_task", "reopen_task", "view_kpis", "print_qr", "edit_steps"},
         TECH: {"view_my_tasks", "work_on_task", "use_shopfloor"},
         ANALYST: {"view_kpis", "use_analysis"},  # the private analysis is not visible to anybody else
     }[role]

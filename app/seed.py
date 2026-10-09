@@ -49,7 +49,7 @@ STEPS = [
      "Freigegebene Software flashen und die ESP-Parameter für den Prüfling laden.", "Flash the released software and load the ESP parameters for the unit under test.",
      ["Software-Version geflasht", "ESP-Parameter geladen", "Versionsnummer dokumentiert"],
      ["Software version flashed", "ESP parameters loaded", "Version number documented"],
-     []),
+     [{"key": "sw_version", "label_de": "Software-Version", "label_en": "Software version", "kind": "text", "unit": ""}]),
     ("S06", "TEST", ["S04", "S05"], "Dichtheitsprüfung & Referenzlauf", "Leak test & reference run",
      "System auf Prüfdruck bringen, Druckabfall messen und den Referenzlauf fahren.",
      "Bring the system to test pressure, measure the pressure drop and run the reference test.",
@@ -112,7 +112,7 @@ def ensure_analyst(db: Session) -> None:
 
 def good_values(step: StepTemplate) -> dict[str, str]:
     """Values in the middle of every tolerance (used for the demo scenario and tests)."""
-    return {d["key"]: str(round((d["min"] + d["max"]) / 2, 2)) for d in step.measurements or []}
+    return {d["key"]: ("OK" if d.get("kind") == "text" else str(round((d["min"] + d["max"]) / 2, 2))) for d in step.measurements or []}
 
 
 def _user(db: Session, username: str) -> User:

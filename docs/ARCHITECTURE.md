@@ -108,3 +108,9 @@ stateDiagram-v2
 
 *Decision:* A separate `ANALYST` role; entries are stored as JSON with a revision row for every create/update/archive/restore; archive instead of delete; JSON export.
 *Consequences:* The thesis author's analysis cannot be lost by editing and is not visible to other roles.
+
+### ADR 13 – Step specifications are versioned; running tasks use a snapshot
+
+*Context:* Team leads must be able to change instructions, checklists and required inputs without disturbing work in progress.
+*Decision:* Every edit creates a new step version with a revision row. When a task starts, the current specification is copied into the task (`spec_snapshot`). Screens and the server always read `task.spec` – the snapshot if present, otherwise the current version.
+*Consequences:* No checklist changes "under the hands" of a worker; results remain interpretable because the snapshot records which version was used.

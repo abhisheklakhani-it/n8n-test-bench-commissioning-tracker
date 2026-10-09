@@ -84,6 +84,13 @@ def check_values(definitions: list[dict], raw: Mapping[str, str]) -> tuple[dict[
     out_of_range: list[str] = []
     invalid: list[str] = []
     for d in definitions:
+        if d.get("kind") == "text":  # free text answer, e.g. a software version: required, no range
+            answer = str(raw.get(d["key"], "")).strip()[:200]
+            if answer:
+                values[d["key"]] = answer
+            else:
+                invalid.append(d["key"])
+            continue
         text = str(raw.get(d["key"], "")).strip().replace(",", ".")
         try:
             number = float(text)
@@ -99,9 +106,11 @@ def check_values(definitions: list[dict], raw: Mapping[str, str]) -> tuple[dict[
     return values, out_of_range, invalid
 
 
-def in_range(definition: dict, value: float | None) -> bool | None:
+def in_range(definition: dict, value) -> bool | None:
     if value is None:
         return None
+    if definition.get("kind") == "text":
+        return bool(value)
     return definition["min"] <= value <= definition["max"]
 
 
@@ -125,3 +134,61 @@ def flow_ratio(processing: float, waiting: float) -> float | None:
     """Flussgrad = processing time / lead time (processing + waiting)."""
     total = processing + waiting
     return processing / total if total > 0 else None
+
+
+MAX_CHECKLIST, MAX_ANSWERS = 12, 8
+
+
+def _slug(text: str, used: set[str]) -> str:
+    text = text.lower()
+    for a, b in (("ä", "ae"), ("ö", "oe"), ("ü", "ue"), ("ß", "ss")):
+        text = text.replace(a, b)
+    base = "".join(c if c.isascii() and c.isalnum() else "_" for c in text).strip("_")[:24] or "wert"
+    key, n = base, 2
+    while key in used:
+        key, n = f"{base}_{n}", n + 1
+    used.add(key)
+    return key
+
+
+def parse_step_spec(form: Mapping[str, str], current: list[dict]) -> tuple[dict, list[str]]:
+    """Validates what a team lead entered in the step editor.
+    Returns (spec, errors). Existing answer keys are kept so stored values stay comparable."""
+    errors: list[str] = []
+    instr_de = str(form.get("instructions_de", "")).strip()[:1000]
+    instr_en = str(form.get("instructions_en", "")).strip()[:1000] or instr_de
+    if not instr_de:
+        errors.append("err_step_instructions")
+    lines = lambda name: [x.strip()[:200] for x in str(form.get(name, "")).splitlines() if x.strip()]  # noqa: E731
+    check_de, check_en = lines("checklist_de"), lines("checklist_en")
+    if not check_de or len(check_de) > MAX_CHECKLIST:
+        errors.append("err_step_checklist")
+    if check_en and len(check_en) != len(check_de):
+        errors.append("err_step_checklist_en")
+    check_en = check_en or list(check_de)
+    used: set[str] = set()
+    answers: list[dict] = []
+    for i in range(MAX_ANSWERS):
+        label_de = str(form.get(f"a{i}_label_de", "")).strip()[:80]
+        if not label_de:
+            continue
+        kind = "text" if form.get(f"a{i}_kind") == "text" else "number"
+        old_key = str(form.get(f"a{i}_key", ""))
+        key = old_key if old_key and old_key in {c["key"] for c in current} and old_key not in used else _slug(label_de, used)
+        used.add(key)
+        answer = {"key": key, "label_de": label_de, "label_en": str(form.get(f"a{i}_label_en", "")).strip()[:80] or label_de, "kind": kind,
+                  "unit": str(form.get(f"a{i}_unit", "")).strip()[:12]}
+        if kind == "number":
+            try:
+                lo = float(str(form.get(f"a{i}_min", "")).replace(",", "."))
+                hi = float(str(form.get(f"a{i}_max", "")).replace(",", "."))
+            except ValueError:
+                errors.append("err_step_range")
+                continue
+            if not lo < hi:
+                errors.append("err_step_range")
+                continue
+            answer.update({"min": lo, "max": hi})
+        answers.append(answer)
+    spec = {"instructions_de": instr_de, "instructions_en": instr_en, "checklist_de": check_de, "checklist_en": check_en, "measurements": answers}
+    return spec, sorted(set(errors))

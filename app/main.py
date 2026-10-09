@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.db import Database
 from app.seed import ensure_analyst, ensure_process, seed_demo
-from app.web import routes_admin, routes_analysis, routes_auth, routes_dashboards, routes_shopfloor, routes_work
+from app.web import routes_admin, routes_analysis, routes_auth, routes_dashboards, routes_shopfloor, routes_steps, routes_work
 from app.web.deps import LoginRequired, current_session, render
 from app.web.security import SecurityHeadersMiddleware
 
@@ -40,7 +40,7 @@ def create_app(database_url: str | None = None, demo_seed: bool | None = None) -
 
     app.add_middleware(SecurityHeadersMiddleware)
     app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
-    for module in (routes_auth, routes_work, routes_dashboards, routes_admin, routes_shopfloor, routes_analysis):
+    for module in (routes_auth, routes_work, routes_dashboards, routes_admin, routes_shopfloor, routes_analysis, routes_steps):
         app.include_router(module.router)
 
     @app.exception_handler(LoginRequired)

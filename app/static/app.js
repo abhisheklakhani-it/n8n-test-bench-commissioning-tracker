@@ -50,7 +50,7 @@
         var state = m.querySelector(".m-state");
         var text = input.value.trim().replace(",", ".");
         var value = text === "" ? NaN : Number(text);
-        var ok = !isNaN(value) && value >= Number(m.dataset.min) && value <= Number(m.dataset.max);
+        var ok = m.dataset.kind === "text" ? text !== "" : !isNaN(value) && value >= Number(m.dataset.min) && value <= Number(m.dataset.max);
         m.classList.toggle("ok", ok);
         m.classList.toggle("bad", text !== "" && !ok);
         state.textContent = text === "" ? "" : (ok ? "✓ OK" : "✗");

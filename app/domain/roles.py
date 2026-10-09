@@ -19,6 +19,7 @@ PERMISSIONS: dict[str, frozenset[str]] = {
     "view_audit": frozenset({ADMIN}),
     "view_kpis": frozenset({ADMIN, LEAD, ANALYST}),
     "print_qr": frozenset({ADMIN, LEAD}),
+    "edit_steps": frozenset({ADMIN, LEAD}),  # leads only for their own discipline (object-level check)
     "reset_demo": frozenset({ADMIN}),
     "use_shopfloor": frozenset({TECH}),
     # the process analysis is personal working material of the analyst (thesis author)

@@ -38,12 +38,14 @@
       <a href="/benutzer" class="{{ 'on' if path == '/benutzer' }}"><svg class="ic"><use href="#i-users"/></svg>{{ t('nav_users') }}</a>
       <a href="/kennzahlen" class="{{ 'on' if path == '/kennzahlen' }}"><svg class="ic"><use href="#i-clock"/></svg>{{ t('nav_kpis') }}</a>
       <a href="/qr" class="{{ 'on' if path == '/qr' }}"><svg class="ic"><use href="#i-list"/></svg>{{ t('nav_qr') }}</a>
+      <a href="/schritte" class="{{ 'on' if path.startswith('/schritte') }}"><svg class="ic"><use href="#i-gear"/></svg>{{ t('nav_steps') }}</a>
       <a href="/protokoll" class="{{ 'on' if path == '/protokoll' }}"><svg class="ic"><use href="#i-file"/></svg>{{ t('nav_audit') }}</a>
     {% elif user.role == 'LEAD' %}
       <a href="/team" class="{{ 'on' if path == '/team' }}"><svg class="ic"><use href="#i-users"/></svg>{{ t('nav_my_team') }}</a>
       <a href="/aufgaben" class="{{ 'on' if path == '/aufgaben' }}"><svg class="ic"><use href="#i-list"/></svg>{{ t('nav_my_tasks') }}</a>
       <a href="/kennzahlen" class="{{ 'on' if path == '/kennzahlen' }}"><svg class="ic"><use href="#i-clock"/></svg>{{ t('nav_kpis') }}</a>
       <a href="/qr" class="{{ 'on' if path == '/qr' }}"><svg class="ic"><use href="#i-list"/></svg>{{ t('nav_qr') }}</a>
+      <a href="/schritte" class="{{ 'on' if path.startswith('/schritte') }}"><svg class="ic"><use href="#i-gear"/></svg>{{ t('nav_steps') }}</a>
     {% elif user.role == 'ANALYST' %}
       <a href="/analyse" class="{{ 'on' if path.startswith('/analyse') }}"><svg class="ic"><use href="#i-file"/></svg>{{ t('nav_analysis') }}</a>
       <a href="/kennzahlen" class="{{ 'on' if path == '/kennzahlen' }}"><svg class="ic"><use href="#i-clock"/></svg>{{ t('nav_kpis') }}</a>

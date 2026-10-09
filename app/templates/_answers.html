@@ -1,0 +1,13 @@
+{# Answers the worker gives besides the checklist. Needs: spec, values (dict), lang, t. #}
+{% for m in spec.measurements %}
+{% set is_text = m.kind == 'text' %}
+<label class="measure" data-kind="{{ 'text' if is_text else 'number' }}"{% if not is_text %} data-min="{{ m.min }}" data-max="{{ m.max }}"{% endif %}>
+  <span class="m-label">{{ m.label_en if lang == 'en' else m.label_de }}</span>
+  <span class="m-row">
+    <input name="v_{{ m.key }}" {% if is_text %}class="m-text" maxlength="200"{% else %}inputmode="decimal" maxlength="12"{% endif %} autocomplete="off" value="{{ values.get(m.key, '') if values else '' }}"{% if readonly %} disabled{% endif %}>
+    {% if m.unit %}<b class="m-unit">{{ m.unit }}</b>{% endif %}
+    <span class="m-state" aria-live="polite"></span>
+  </span>
+  <span class="m-range">{% if is_text %}{{ t('answer_required') }}{% else %}{{ t('allowed') }}: {{ m.min }} … {{ m.max }} {{ m.unit }}{% endif %}</span>
+</label>
+{% endfor %}

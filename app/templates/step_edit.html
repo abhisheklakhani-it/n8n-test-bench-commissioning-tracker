@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ step.code }} · {{ t('nav_steps') }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="/schritte">{{ t('nav_steps') }}</a> › {{ step.code }}</p>
+<div class="task-head">
+  <div><h1>{{ step.code }} · {{ L.step_name(step, lang) }}</h1><p class="muted">{{ L.discipline(step.discipline, lang) }} · {{ t('version') }} {{ step.version }}{% if step.updated_at %} · {{ step.updated_at|local }}{% endif %}</p></div>
+</div>
+<div class="grid2">
+  <section class="card">
+    {% if editable %}
+    <form method="post" action="/schritte/{{ step.code }}" class="stack">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <h2>{{ t('what_to_do') }}</h2>
+      <label>{{ t('label_de') }}<textarea name="instructions_de" rows="2" maxlength="1000" required>{{ step.instructions_de }}</textarea></label>
+      <label>{{ t('label_en') }}<textarea name="instructions_en" rows="2" maxlength="1000">{{ step.instructions_en }}</textarea></label>
+      <h2>{{ t('checklist') }}</h2>
+      <p class="muted small">{{ t('checklist_hint') }}</p>
+      <label>{{ t('label_de') }}<textarea name="checklist_de" rows="5" required>{{ step.checklist_de|join('\n') }}</textarea></label>
+      <label>{{ t('label_en') }}<textarea name="checklist_en" rows="5">{{ step.checklist_en|join('\n') }}</textarea></label>
+      <h2>{{ t('answers_title') }}</h2>
+      <p class="muted small">{{ t('answers_hint') }}</p>
+      {% for a in rows %}{% set i = loop.index0 %}
+      <fieldset class="answer-row">
+        <legend>{{ t('answer') }} {{ loop.index }}</legend>
+        <input type="hidden" name="a{{ i }}_key" value="{{ a.key or '' }}">
+        <label>{{ t('answer_label_de') }}<input name="a{{ i }}_label_de" maxlength="80" value="{{ a.label_de or '' }}"></label>
+        <label>{{ t('answer_label_en') }}<input name="a{{ i }}_label_en" maxlength="80" value="{{ a.label_en or '' }}"></label>
+        <label>{{ t('answer_kind') }}<select name="a{{ i }}_kind"><option value="number"{% if a.kind != 'text' %} selected{% endif %}>{{ t('kind_number') }}</option><option value="text"{% if a.kind == 'text' %} selected{% endif %}>{{ t('kind_text') }}</option></select></label>
+        <label>{{ t('unit') }}<input name="a{{ i }}_unit" maxlength="12" value="{{ a.unit or '' }}"></label>
+        <label>{{ t('min') }}<input name="a{{ i }}_min" inputmode="decimal" maxlength="12" value="{{ a.min if a.min is defined else '' }}"></label>
+        <label>{{ t('max') }}<input name="a{{ i }}_max" inputmode="decimal" maxlength="12" value="{{ a.max if a.max is defined else '' }}"></label>
+      </fieldset>
+      {% endfor %}
+      <p class="muted small">{{ t('snapshot_hint') }}</p>
+      <button class="btn primary big">{{ t('save_new_version') }}</button>
+    </form>
+    {% else %}
+    <p class="muted">{{ t('read_only_hint') }}</p>
+    {% endif %}
+  </section>
+  <section class="card preview">
+    <h2><svg class="ic"><use href="#i-play"/></svg>{{ t('preview_title') }}</h2>
+    <p class="muted small">{{ t('preview_hint') }}</p>
+    <div class="job st-border-in_progress">
+      <h1 class="job-step">{{ L.step_name(step, lang) }}</h1>
+      <p class="job-todo">{{ L.step_instructions(step, lang) }}</p>
+      <div class="checklist">{% for item in L.checklist(step, lang) %}<label class="check big"><input type="checkbox" disabled><span>{{ item }}</span></label>{% endfor %}</div>
+      {% with spec=step, values={}, readonly=True %}{% include '_answers.html' %}{% endwith %}
+      <button class="btn ok giant" type="button" disabled><svg class="ic"><use href="#i-check"/></svg>{{ t('shop_done') }}</button>
+    </div>
+    <h2><svg class="ic"><use href="#i-clock"/></svg>{{ t('history') }}</h2>
+    <ul class="people">
+      {% for r in revisions %}<li><span>{{ t('version') }} {{ r.version }} · {{ r.user.full_name if r.user else t('original') }}</span><span class="muted">{{ r.at|local }}</span></li>
+      {% else %}<li class="muted">{{ t('version') }} 1 · {{ t('original') }}</li>{% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}
